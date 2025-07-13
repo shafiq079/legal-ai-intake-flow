@@ -72,6 +72,7 @@ const intakeQuestions = {
     { question: "What is your date of birth?", field: "personalInfo.dateOfBirth" },
     { question: "Please describe the legal issue you are facing in as much detail as possible.", field: "caseInfo.description" },
     { question: "What outcome are you hoping to achieve?", field: "caseInfo.desiredOutcome" },
+    { question: "What is the urgency of this matter (e.g., High, Medium, Low)?", field: "caseInfo.urgency" },
     { question: "What is your email address?", field: "contactInfo.email" },
     { question: "What is your phone number?", field: "contactInfo.phone" },
   ],

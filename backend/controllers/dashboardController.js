@@ -8,7 +8,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   const totalClients = await Client.countDocuments();
   const newIntakesThisWeek = await Intake.countDocuments({
     createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-    status: 'completed',
+    status: 'started',
   });
   const activeCases = await Case.countDocuments({
     status: { $in: ['Open', 'In Progress', 'Under Review'] },
@@ -49,14 +49,18 @@ const getDashboardStats = asyncHandler(async (req, res) => {
 });
 
 const getRecentIntakes = asyncHandler(async (req, res) => {
-  const recentIntakes = await Intake.find({ status: 'completed' })
+  const recentIntakes = await Intake.find({ status: 'started' })
     .sort({ createdAt: -1 })
     .limit(5) // Fetch top 5 recent intakes
     .populate('clientId', 'personalInfo.firstName personalInfo.lastName'); // Populate clientId and select name fields
 
   const formattedIntakes = recentIntakes.map(intake => ({
     id: intake._id,
-    clientName: intake.clientId ? `${intake.clientId.personalInfo.firstName} ${intake.clientId.personalInfo.lastName}` : 'N/A',
+    clientName: intake.clientId
+      ? `${intake.clientId.personalInfo.firstName} ${intake.clientId.personalInfo.lastName}`
+      : (intake.extractedData?.personalInfo?.firstName && intake.extractedData?.personalInfo?.lastName
+          ? `${intake.extractedData.personalInfo.firstName} ${intake.extractedData.personalInfo.lastName}`
+          : 'N/A'), // Fallback to N/A if no name in extractedData either
     caseType: intake.extractedData?.caseInfo?.caseType || 'N/A',
     status: intake.status || 'N/A',
     date: intake.createdAt.toISOString().split('T')[0],

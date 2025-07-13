@@ -18,7 +18,7 @@ const intakeSchema = new mongoose.Schema({
   },
   linkStatus: {
     type: String,
-    enum: ['active', 'expired', 'submitted', 'disabled'],
+    enum: ['active', 'expired', 'disabled'],
     default: 'active'
   },
   // Session Information

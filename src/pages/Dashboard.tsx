@@ -62,12 +62,16 @@ export default function Dashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Completed':
+      case 'completed':
         return 'bg-success/10 text-success';
-      case 'In Progress':
+      case 'in-progress':
         return 'bg-primary/10 text-primary';
-      case 'Under Review':
-        return 'bg-warning/10 text-warning';
+      case 'started':
+        return 'bg-blue-500/10 text-blue-500'; // A new color for 'started'
+      case 'abandoned':
+        return 'bg-destructive/10 text-destructive';
+      case 'converted':
+        return 'bg-purple-500/10 text-purple-500'; // A new color for 'converted'
       default:
         return 'bg-muted text-muted-foreground';
     }
@@ -158,30 +162,33 @@ export default function Dashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {recentIntakes.map((intake) => (
-              <div
-                key={intake.id}
-                className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-3">
-                    <h4 className="font-medium">{intake.clientName}</h4>
-                    <Badge variant="outline">{intake.caseType}</Badge>
+            {recentIntakes.map((intake) => {
+              console.log('Intake data in Dashboard.tsx:', intake);
+              return (
+                <div
+                  key={intake.id}
+                  className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <h4 className="font-medium">{intake.clientName}</h4>
+                      <Badge variant="outline">{intake.caseType}</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {intake.date}
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {intake.date}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <Badge className={getUrgencyColor(intake.urgency)}>
+                      {intake.urgency}
+                    </Badge>
+                    <Badge className={getStatusColor(intake.status)}>
+                      {intake.status}
+                    </Badge>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge className={getUrgencyColor(intake.urgency)}>
-                    {intake.urgency}
-                  </Badge>
-                  <Badge className={getStatusColor(intake.status)}>
-                    {intake.status}
-                  </Badge>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             <Button variant="outline" className="w-full mt-4">
               View All Intakes
             </Button>

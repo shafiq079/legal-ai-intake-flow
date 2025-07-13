@@ -163,6 +163,10 @@ const completeIntake = asyncHandler(async (req, res) => {
     await intakeLink.save();
   }
 
+  // Set the intake status to 'completed'
+  intake.status = 'completed';
+  await intake.save();
+
   res.status(200).json({ message: 'Intake finalized and client created successfully!', clientId: newClient._id });
 });
 
