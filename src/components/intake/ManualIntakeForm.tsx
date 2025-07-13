@@ -33,57 +33,48 @@ interface UploadedFileState {
 
 interface ManualIntakeFormProps {
   onBack: () => void;
-  extractedData?: ExtractedField[];
-  intakeType: IntakeDocumentType; // Add intakeType prop
-  onFormSubmit: (data: IntakeFormValues) => void; // New prop for form submission
-  intakeId: string; // Add intakeId prop
+  intakeData: any; // Add intakeData prop
+  intakeType: IntakeDocumentType;
+  onFormSubmit: (data: IntakeFormValues) => void;
+  intakeId: string;
 }
 
-const ManualIntakeForm: React.FC<ManualIntakeFormProps> = ({ onBack, extractedData, intakeType, onFormSubmit, intakeId }) => {
+const ManualIntakeForm: React.FC<ManualIntakeFormProps> = ({ onBack, intakeData, intakeType, onFormSubmit, intakeId }) => {
   const [uploadedDocuments, setUploadedDocuments] = useState<UploadedFileState[]>([]);
 
   const form = useForm<IntakeFormValues>({
     resolver: zodResolver(intakeSchema),
     defaultValues: {
       personalInfo: {
-        firstName: '',
-        lastName: '',
-        dateOfBirth: '',
+        firstName: intakeData?.extractedData?.personalInfo?.firstName || '',
+        lastName: intakeData?.extractedData?.personalInfo?.lastName || '',
+        dateOfBirth: intakeData?.extractedData?.personalInfo?.dateOfBirth || '',
       },
       contactInfo: {
-        email: '',
-        phone: '',
+        email: intakeData?.extractedData?.contactInfo?.email || '',
+        phone: intakeData?.extractedData?.contactInfo?.phone || '',
         currentAddress: {
-          street: '',
-          city: '',
-          state: '',
-          zipCode: '',
-          country: '',
+          street: intakeData?.extractedData?.contactInfo?.currentAddress?.street || '',
+          city: intakeData?.extractedData?.contactInfo?.currentAddress?.city || '',
+          state: intakeData?.extractedData?.contactInfo?.currentAddress?.state || '',
+          zipCode: intakeData?.extractedData?.contactInfo?.currentAddress?.zipCode || '',
+          country: intakeData?.extractedData?.contactInfo?.currentAddress?.country || '',
         },
       },
       caseInfo: {
-        caseType: 'Other',
-        description: '',
+        caseType: intakeData?.extractedData?.caseInfo?.caseType || intakeType || 'Other',
+        description: intakeData?.extractedData?.caseInfo?.description || '',
       },
-      documents: [], // Initialize documents as an empty array
+      documents: intakeData?.documents || [],
     },
   });
 
   useEffect(() => {
-    if (extractedData && extractedData.length > 0) {
-      console.log("ManualIntakeForm: extractedData", extractedData);
-      extractedData.forEach(field => {
-        form.setValue(field.field as any, field.value, { shouldValidate: true });
-      });
-    }
-  }, [extractedData, form]);
-
-  useEffect(() => {
     console.log("ManualIntakeForm: current intakeType", intakeType);
     form.setValue('documents', uploadedDocuments.map(doc => ({
-      name: doc.documentName, // Use the categorized name
-      type: doc.documentType, // Use the categorized type
-      category: doc.documentType, // Or a more specific category if available
+      name: doc.documentName,
+      type: doc.documentType,
+      category: doc.documentType,
     })), { shouldValidate: true });
   }, [uploadedDocuments, form, intakeType]);
 
@@ -151,7 +142,7 @@ const ManualIntakeForm: React.FC<ManualIntakeFormProps> = ({ onBack, extractedDa
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <PersonalInfoForm />
               <ContactInfoForm />
-              <CaseInfoForm />
+              <CaseInfoForm intakeType={intakeType} />
               <ConditionalForms />
               <DocumentUploadForm intakeType={intakeType} onDocumentsChange={setUploadedDocuments} />
               <MedicalInfoForm />

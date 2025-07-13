@@ -59,7 +59,7 @@ export const intakeSchema = z.object({
 
   // Legal Case Information
   caseInfo: z.object({
-    caseType: z.enum(["Immigration", "Criminal", "Civil", "Family", "Business", "Other"]),
+    caseType: z.string().min(1, "Case type is required"),
     subCaseType: z.string().optional(),
     urgency: z.enum(["High", "Medium", "Low"]).optional(),
     description: z.string().min(1, "Case description is required"),

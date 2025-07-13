@@ -53,7 +53,22 @@ const getIntakeById = asyncHandler(async (req, res) => {
       adminId: intakeLink.createdBy, // Inherit adminId from IntakeLink
       linkStatus: 'active', // Set link status to active
     });
+  } else {
+    // If intake session exists, ensure its intakeType matches the link's type
+    if (intake.intakeType !== intakeLink.type) {
+      intake.intakeType = intakeLink.type;
+    }
   }
+
+  // Ensure extractedData.caseInfo.caseType is always set to the intakeLink type
+  if (!intake.extractedData) {
+    intake.extractedData = {};
+  }
+  if (!intake.extractedData.caseInfo) {
+    intake.extractedData.caseInfo = {};
+  }
+  intake.extractedData.caseInfo.caseType = intakeLink.type;
+  await intake.save(); // Save the intake after ensuring caseType is set
 
   res.json(intake);
 });

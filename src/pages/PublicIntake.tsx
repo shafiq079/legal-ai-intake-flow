@@ -250,11 +250,11 @@ export default function PublicIntake() {
           {/* Left Panel: Manual Intake Form */}
           <div className="flex-1 flex flex-col overflow-y-auto p-4 border-r">
             <ManualIntakeForm
-              extractedData={extractedFields}
+              intakeData={intakeData} // Pass the entire intakeData object
               onBack={() => setSelectedIntakeType(null)}
-              intakeType={intakeData?.intakeType || 'Other'} // Pass intakeType here
-              onFormSubmit={handleManualFormSubmit} // Pass the new handler
-              intakeId={linkId || ''} // Pass intakeId here
+              intakeType={intakeData?.intakeType || 'Other'}
+              onFormSubmit={handleManualFormSubmit}
+              intakeId={linkId || ''}
             />
           </div>
 

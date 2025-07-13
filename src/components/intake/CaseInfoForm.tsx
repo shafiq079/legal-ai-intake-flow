@@ -5,8 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { IntakeFormValues } from '@/lib/intakeSchema';
+import { IntakeDocumentType } from '@/lib/requiredDocuments';
 
-const CaseInfoForm: React.FC = () => {
+interface CaseInfoFormProps {
+  intakeType?: IntakeDocumentType;
+}
+
+const CaseInfoForm: React.FC<CaseInfoFormProps> = ({ intakeType }) => {
   const { control } = useFormContext<IntakeFormValues>();
 
   return (
@@ -19,7 +24,7 @@ const CaseInfoForm: React.FC = () => {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Case Type</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!intakeType}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select case type" />
