@@ -6,7 +6,7 @@ const intakeSchema = new mongoose.Schema({
   intakeType: {
     type: String,
     required: true,
-    enum: ['Immigration', 'Criminal', 'Family', 'Civil', 'Business', 'Other'] // Define your intake types
+    enum: ['immigration', 'criminal', 'family', 'civil', 'business', 'personal-injury', 'real-estate', 'other'] // Define your intake types
   },
   adminId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -32,11 +32,15 @@ const intakeSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Client'
   },
+  caseId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Case'
+  },
   
   // Intake Status
   status: {
     type: String,
-    enum: ['started', 'in-progress', 'completed', 'abandoned', 'converted'],
+    enum: ['started', 'in-progress', 'completed', 'abandoned', 'converted', 'converted-to-case'],
     default: 'started'
   },
   completionPercentage: {

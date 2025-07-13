@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { initiateIntake, getIntakeById, convertIntakeToClient, createIntakeLink, listIntakeLinks, deleteIntakeLink, completeIntake, updateIntakeData, getAllIntakes, getSingleIntakeById, deleteIntake } = require('../controllers/intakeController');
+const { initiateIntake, getIntakeById, convertIntakeToClient, createIntakeLink, listIntakeLinks, deleteIntakeLink, completeIntake, updateIntakeData, getAllIntakes, getSingleIntakeById, deleteIntake, convertIntakeToCase } = require('../controllers/intakeController');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { protect } = require('../middleware/auth');
 
@@ -14,6 +14,7 @@ router.get('/single/:id', asyncHandler(getSingleIntakeById)); // New route to ge
 router.post('/:id/convert-to-client', asyncHandler(convertIntakeToClient));
 router.post('/:intakeId/complete', asyncHandler(completeIntake));
 router.put('/:intakeId/update-data', asyncHandler(updateIntakeData));
+router.post('/:id/convert-to-case', protect, asyncHandler(convertIntakeToCase));
 router.delete('/:id', asyncHandler(deleteIntake)); // New route to delete intake by MongoDB _id
 
 module.exports = router;

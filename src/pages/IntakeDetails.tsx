@@ -3,9 +3,11 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 interface Intake {
   _id: string;
@@ -308,6 +310,30 @@ export default function IntakeDetails() {
     enabled: !!id,
   });
 
+  const queryClient = useQueryClient();
+
+  const convertToCaseMutation = useMutation({
+    mutationFn: async (intakeId: string) => {
+      const response = await axios.post(`/api/intake/${intakeId}/convert-to-case`);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      toast.success(data.message || "Intake converted to case successfully!");
+      queryClient.invalidateQueries({ queryKey: ['intakeDetails', id] });
+      queryClient.invalidateQueries({ queryKey: ['allIntakes'] });
+      navigate(`/cases/${data.caseId}`); // Navigate to the new case details page
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || "Failed to convert intake to case.");
+    },
+  });
+
+  const handleConvertToCase = () => {
+    if (id) {
+      convertToCaseMutation.mutate(id);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen w-full">
@@ -354,6 +380,18 @@ export default function IntakeDetails() {
         </div>
         <Button onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Back to Intakes
+        </Button>
+        <Button
+          onClick={handleConvertToCase}
+          disabled={convertToCaseMutation.isPending}
+          className="ml-2"
+        >
+          {convertToCaseMutation.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : (
+            <FileText className="h-4 w-4 mr-2" />
+          )}
+          Convert to Case
         </Button>
       </div>
 

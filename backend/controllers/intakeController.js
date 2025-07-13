@@ -1,6 +1,7 @@
 const Intake = require('../models/Intake');
 const Client = require('../models/Client');
 const IntakeLink = require('../models/IntakeLink');
+const Case = require('../models/Case'); // Import Case model
 const { asyncHandler, NotFoundError } = require('../middleware/errorHandler');
 const crypto = require('crypto');
 
@@ -49,14 +50,14 @@ const getIntakeById = asyncHandler(async (req, res) => {
     // If no intake session exists, create a new one
     intake = await Intake.create({
       sessionId: linkId,
-      intakeType: intakeLink.type, // Inherit intakeType from IntakeLink
+      intakeType: intakeLink.type.toLowerCase(), // Inherit intakeType from IntakeLink and convert to lowercase
       adminId: intakeLink.createdBy, // Inherit adminId from IntakeLink
       linkStatus: 'active', // Set link status to active
     });
   } else {
     // If intake session exists, ensure its intakeType matches the link's type
-    if (intake.intakeType !== intakeLink.type) {
-      intake.intakeType = intakeLink.type;
+    if (intake.intakeType !== intakeLink.type.toLowerCase()) {
+      intake.intakeType = intakeLink.type.toLowerCase();
     }
   }
 
@@ -67,7 +68,7 @@ const getIntakeById = asyncHandler(async (req, res) => {
   if (!intake.extractedData.caseInfo) {
     intake.extractedData.caseInfo = {};
   }
-  intake.extractedData.caseInfo.caseType = intakeLink.type;
+  intake.extractedData.caseInfo.caseType = intakeLink.type.toLowerCase();
   await intake.save(); // Save the intake after ensuring caseType is set
 
   res.json(intake);
@@ -131,26 +132,7 @@ const convertIntakeToClient = async (intakeId) => {
   return newClient; // Return the created client
 };
 
-const markIntakeAsCompleted = asyncHandler(async (intakeId, extractedData) => {
-  const intake = await Intake.findOne({ sessionId: intakeId });
-  if (!intake) {
-    throw new NotFoundError('Intake session not found.');
-  }
 
-  // Update intake status and extracted data
-  intake.status = 'completed';
-  intake.extractedData = extractedData; // Overwrite with the final extracted data from AI
-  await intake.save();
-
-  // Update the associated IntakeLink status
-  const intakeLink = await IntakeLink.findOne({ linkId: intakeId });
-  if (intakeLink) {
-    intakeLink.status = 'completed';
-    // Optionally, you might want to link the intake to a client here if conversion happens automatically
-    // For now, we'll assume client conversion is a separate manual step or triggered elsewhere.
-    await intakeLink.save();
-  }
-});
 
 const completeIntake = asyncHandler(async (req, res) => {
   const { intakeId } = req.params;
@@ -168,7 +150,9 @@ const completeIntake = asyncHandler(async (req, res) => {
   const newClient = await convertIntakeToClient(intake.id); // Use intake.id (Mongoose _id) for convertIntakeToClient
 
   // Mark intake as completed and save extracted data
-  await markIntakeAsCompleted(intake.sessionId, intake.extractedData); // Use the new function
+  intake.status = 'completed';
+  intake.clientId = newClient._id; // Store the created client's ID
+  await intake.save();
 
   // Update the associated IntakeLink status
   const intakeLink = await IntakeLink.findOne({ linkId: intakeId });
@@ -178,11 +162,59 @@ const completeIntake = asyncHandler(async (req, res) => {
     await intakeLink.save();
   }
 
-  // Set the intake status to 'completed'
-  intake.status = 'completed';
+  res.status(200).json({ message: 'Intake finalized and client created successfully!', clientId: newClient._id });
+});
+
+const convertIntakeToCase = asyncHandler(async (req, res) => {
+  const { intakeId } = req.params;
+  const userId = req.user._id; // Assuming req.user is populated by authenticateToken middleware
+
+  const intake = await Intake.findById(intakeId);
+  if (!intake) {
+    throw new NotFoundError('Intake not found.');
+  }
+
+  if (!intake.extractedData || Object.keys(intake.extractedData).length === 0) {
+    throw new Error('No extracted data available to create a case.');
+  }
+
+  // If intake is not yet converted to a client, convert it first
+  if (!intake.clientId) {
+    try {
+      await convertIntakeToClient(intake._id);
+      // Reload the intake to get the updated clientId
+      intake = await Intake.findById(intakeId);
+      if (!intake) {
+        throw new NotFoundError('Intake not found after client conversion.');
+      }
+    } catch (error) {
+      console.error('Error converting intake to client during case conversion:', error);
+      return res.status(500).json({ success: false, message: 'Failed to convert intake to client before case creation.' });
+    }
+  }
+
+  // Map intake data to Case model schema
+  const caseData = {
+    clientId: intake.clientId,
+    title: intake.extractedData.caseInfo?.description || 'New Case from Intake',
+    description: intake.extractedData.caseInfo?.detailedDescription || intake.extractedData.caseInfo?.description || 'No detailed description provided.',
+    caseType: intake.extractedData.caseInfo?.caseType?.toLowerCase() || 'other',
+    subCaseType: intake.extractedData.caseInfo?.subCaseType,
+    status: 'open',
+    priority: intake.extractedData.caseInfo?.priority || 'medium',
+    assignedLawyer: userId, // Assigning the current user as the lawyer for now
+    // You can add more fields here based on your Case model and intake data
+  };
+
+  const newCase = await Case.create(caseData);
+
+  // Update intake status and link to new case
+  intake.status = 'converted-to-case';
+  intake.caseId = newCase._id;
+  intake.conversion.caseCreated = newCase._id; // Add this line
   await intake.save();
 
-  res.status(200).json({ message: 'Intake finalized and client created successfully!', clientId: newClient._id });
+  res.status(201).json({ success: true, message: 'Intake converted to case successfully!', caseId: newCase._id });
 });
 
 const updateIntakeData = asyncHandler(async (req, res) => {
@@ -328,9 +360,9 @@ module.exports = {
   }),
   completeIntake,
   updateIntakeData,
-  markIntakeAsCompleted, // Export the new function
   getAllIntakes, // Export the new function
   getSingleIntakeById, // Export the new function
   deleteIntake, // Export the new function
+  convertIntakeToCase,
 };
 
