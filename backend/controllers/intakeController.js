@@ -255,6 +255,15 @@ const getAllIntakes = asyncHandler(async (req, res) => {
   res.json(intakes);
 });
 
+const getSingleIntakeById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const intake = await Intake.findById(id);
+  if (!intake) {
+    throw new NotFoundError('Intake not found');
+  }
+  res.json(intake);
+});
+
 module.exports = {
   initiateIntake,
   getIntakeById,
@@ -283,5 +292,6 @@ module.exports = {
   updateIntakeData,
   markIntakeAsCompleted, // Export the new function
   getAllIntakes, // Export the new function
+  getSingleIntakeById, // Export the new function
 };
 

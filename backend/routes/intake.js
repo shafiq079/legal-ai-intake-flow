@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { initiateIntake, getIntakeById, convertIntakeToClient, createIntakeLink, listIntakeLinks, deleteIntakeLink, completeIntake, updateIntakeData, getAllIntakes } = require('../controllers/intakeController');
+const { initiateIntake, getIntakeById, convertIntakeToClient, createIntakeLink, listIntakeLinks, deleteIntakeLink, completeIntake, updateIntakeData, getAllIntakes, getSingleIntakeById } = require('../controllers/intakeController');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { protect } = require('../middleware/auth');
 
@@ -9,7 +9,8 @@ router.post('/initiate', initiateIntake);
 router.post('/create-link', protect, createIntakeLink);
 router.get('/links', protect, listIntakeLinks);
 router.delete('/links/:linkId', protect, deleteIntakeLink);
-router.get('/:id', getIntakeById);
+router.get('/:id', getIntakeById); // This is for public intake links (sessionId)
+router.get('/single/:id', asyncHandler(getSingleIntakeById)); // New route to get intake by MongoDB _id
 router.post('/:id/convert-to-client', asyncHandler(convertIntakeToClient));
 router.post('/:intakeId/complete', asyncHandler(completeIntake));
 router.put('/:intakeId/update-data', asyncHandler(updateIntakeData));
