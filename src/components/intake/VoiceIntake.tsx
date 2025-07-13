@@ -1,9 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Mic, StopCircle, Send, Loader2, Volume2, VolumeX } from 'lucide-react';
+import { Mic, StopCircle, Loader2, Volume2, VolumeX, Bot, User } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -26,8 +24,6 @@ const VoiceIntake: React.FC<VoiceIntakeProps> = ({ intakeId, intakeType, onCompl
   const [isMuted, setIsMuted] = useState(false);
 
   const queryClient = useQueryClient();
-
-  
 
   const processVoiceIntakeMutation = useMutation({
     mutationFn: async (transcription: string) => {
@@ -98,8 +94,6 @@ const VoiceIntake: React.FC<VoiceIntakeProps> = ({ intakeId, intakeType, onCompl
     }
   };
 
-  
-
   const speakText = (text: string) => {
     if (isMuted) return;
     const utterance = new SpeechSynthesisUtterance(text);
@@ -141,65 +135,85 @@ const VoiceIntake: React.FC<VoiceIntakeProps> = ({ intakeId, intakeType, onCompl
   }, [intakeId, initialQuestionAsked]);
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>AI-Powered Voice Intake</CardTitle>
-        <CardDescription>
-          Speak naturally to the AI assistant to complete your intake for a <span className="font-semibold text-primary">{intakeType}</span> case.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <ScrollArea className="h-[400px] p-4 border rounded-md bg-muted/50">
-          <div className="flex flex-col space-y-2" ref={scrollAreaRef}>
-            {messages.length === 0 && (
-              <p className="text-center text-muted-foreground">Starting voice intake... Please wait for the first question.</p>
-            )}
-            {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[70%] p-3 rounded-lg ${
-                    msg.role === 'user'
-                      ? 'bg-blue-500 text-white rounded-br-none'
-                      : 'bg-gray-200 text-gray-800 rounded-bl-none dark:bg-gray-700 dark:text-gray-200'
-                  }`}
-                >
-                  {msg.content}
-                </div>
-              </div>
-            ))}
-            {(processVoiceIntakeMutation.isLoading) && (
-              <div className="flex justify-start">
-                <div className="max-w-[70%] p-3 rounded-lg bg-gray-200 dark:bg-gray-700">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                </div>
-              </div>
-            )}
+    <div className="flex flex-col h-full bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+      {/* Chat Header */}
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Bot className="h-8 w-8 text-primary dark:text-blue-400" />
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">AI Legal Intake Assistant</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Intelligent client data collection and form completion</p>
           </div>
-        </ScrollArea>
-
-        <div className="flex items-center space-x-2">
-          <Button
-            onClick={isRecording ? stopRecording : startRecording}
-            variant={isRecording ? 'destructive' : 'outline'}
-            size="icon"
-            disabled={processVoiceIntakeMutation.isLoading || isSpeaking}
-          >
-            {isRecording ? <StopCircle className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-          </Button>
-          <Button
-            onClick={() => setIsMuted(!isMuted)}
-            variant="outline"
-            size="icon"
-          >
-            {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-          </Button>
         </div>
-        {transcribedText && <p className="text-sm text-muted-foreground mt-2">Last transcription: "{transcribedText}"</p>}
-      </CardContent>
-    </Card>
+        <Button
+          onClick={() => setIsMuted(!isMuted)}
+          variant="ghost"
+          size="icon"
+          className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+        >
+          {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+        </Button>
+      </div>
+
+      {/* Chat Messages */}
+      <ScrollArea className="flex-1 p-4">
+        <div className="flex flex-col space-y-4" ref={scrollAreaRef}>
+          {messages.length === 0 && (
+            <p className="text-center text-gray-500 dark:text-gray-400">Starting voice intake... Please wait for the first question.</p>
+          )}
+          {messages.map((msg, index) => (
+            <div
+              key={index}
+              className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              {msg.role === 'assistant' && (
+                <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary dark:bg-blue-500 flex items-center justify-center">
+                  <Bot className="h-4 w-4 text-white" />
+                </div>
+              )}
+              <div
+                className={`max-w-[75%] p-3 rounded-lg shadow-sm ${
+                  msg.role === 'user'
+                    ? 'bg-blue-500 text-white rounded-br-none'
+                    : 'bg-gray-100 text-gray-800 rounded-bl-none dark:bg-gray-700 dark:text-gray-200'
+                }`}
+              >
+                {msg.content}
+              </div>
+              {msg.role === 'user' && (
+                <div className="flex-shrink-0 h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                  <User className="h-4 w-4 text-gray-700 dark:text-gray-300" />
+                </div>
+              )}
+            </div>
+          ))}
+          {processVoiceIntakeMutation.isLoading && (
+            <div className="flex items-start gap-3 justify-start">
+              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary dark:bg-blue-500 flex items-center justify-center">
+                <Bot className="h-4 w-4 text-white" />
+              </div>
+              <div className="max-w-[75%] p-3 rounded-lg bg-gray-100 dark:bg-gray-700 shadow-sm">
+                <Loader2 className="h-5 w-5 animate-spin text-gray-500 dark:text-gray-400" />
+              </div>
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+
+      {/* Microphone Input */}
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-center items-center gap-4">
+        <Button
+          onClick={isRecording ? stopRecording : startRecording}
+          variant={isRecording ? 'destructive' : 'default'}
+          size="lg"
+          className="rounded-full h-16 w-16 flex items-center justify-center shadow-lg transition-all duration-200 ease-in-out"
+          disabled={processVoiceIntakeMutation.isLoading || isSpeaking}
+        >
+          {isRecording ? <StopCircle className="h-8 w-8" /> : <Mic className="h-8 w-8" />}
+        </Button>
+      </div>
+      {transcribedText && <p className="text-sm text-muted-foreground text-center pb-2">Last transcription: "{transcribedText}"</p>}
+    </div>
   );
 };
 
