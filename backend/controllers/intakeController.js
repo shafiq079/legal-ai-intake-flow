@@ -215,6 +215,31 @@ const createIntakeLink = asyncHandler(async (req, res) => {
   });
 });
 
+const getAllIntakes = asyncHandler(async (req, res) => {
+  const { search, status, caseType } = req.query;
+  const query = {};
+
+  if (search) {
+    query.$or = [
+      { 'extractedData.personalInfo.firstName': { $regex: search, $options: 'i' } },
+      { 'extractedData.personalInfo.lastName': { $regex: search, $options: 'i' } },
+      { 'extractedData.personalInfo.email': { $regex: search, $options: 'i' } },
+      { 'extractedData.caseInfo.caseType': { $regex: search, $options: 'i' } },
+    ];
+  }
+
+  if (status && status !== 'all') {
+    query.status = status;
+  }
+
+  if (caseType && caseType !== 'all') {
+    query['extractedData.caseInfo.caseType'] = caseType;
+  }
+
+  const intakes = await Intake.find(query).sort({ createdAt: -1 });
+  res.json(intakes);
+});
+
 module.exports = {
   initiateIntake,
   getIntakeById,
@@ -242,5 +267,6 @@ module.exports = {
   completeIntake,
   updateIntakeData,
   markIntakeAsCompleted, // Export the new function
+  getAllIntakes, // Export the new function
 };
 

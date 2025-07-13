@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { initiateIntake, getIntakeById, convertIntakeToClient, createIntakeLink, listIntakeLinks, deleteIntakeLink, completeIntake, updateIntakeData } = require('../controllers/intakeController');
+const { initiateIntake, getIntakeById, convertIntakeToClient, createIntakeLink, listIntakeLinks, deleteIntakeLink, completeIntake, updateIntakeData, getAllIntakes } = require('../controllers/intakeController');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { protect } = require('../middleware/auth');
 
+router.get('/', asyncHandler(getAllIntakes)); // New route to get all intakes
 router.post('/initiate', initiateIntake);
 router.post('/create-link', protect, createIntakeLink);
 router.get('/links', protect, listIntakeLinks);

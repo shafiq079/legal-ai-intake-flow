@@ -30,66 +30,36 @@ import {
 } from '@/components/ui/select';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-interface Client {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  caseType: string;
+interface Intake {
+  _id: string;
+  intakeType: string;
   status: string;
-  intakeDate: string;
-  lastContact: string;
-  urgency: string;
+  createdAt: string;
+  extractedData: {
+    personalInfo: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+    };
+    caseInfo: {
+      caseType: string;
+      urgency: string;
+    };
+  };
 }
 
-const fetchClients = async (searchQuery: string, statusFilter: string, caseTypeFilter: string) => {
+const fetchIntakes = async (searchQuery: string, statusFilter: string, caseTypeFilter: string) => {
   const params = new URLSearchParams();
   if (searchQuery) params.append('search', searchQuery);
   if (statusFilter !== 'all') params.append('status', statusFilter);
   if (caseTypeFilter !== 'all') params.append('caseType', caseTypeFilter);
 
-  const response = await fetch(`/api/clients?${params.toString()}`);
+  const response = await fetch(`/api/intake?${params.toString()}`);
   if (!response.ok) {
     throw new Error('Network response was not ok');
   }
   return response.json();
-};
-
-const addClient = async (newClient: Omit<Client, 'id'>) => {
-  const response = await fetch('/api/clients', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(newClient),
-  });
-  if (!response.ok) {
-    throw new Error('Failed to add client');
-  }
-  return response.json();
-};
-
-const updateClient = async (updatedClient: Client) => {
-  const response = await fetch(`/api/clients/${updatedClient.id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(updatedClient),
-  });
-  if (!response.ok) {
-    throw new Error('Failed to update client');
-  }
-  return response.json();
-};
-
-const deleteClient = async (clientId: string) => {
-  const response = await fetch(`/api/clients/${clientId}`, {
-    method: 'DELETE',
-  });
-  if (!response.ok) {
-    throw new Error('Failed to delete client');
-  }
 };
 
 export default function Clients() {
@@ -123,45 +93,24 @@ export default function Clients() {
   };
 
 
-  const { data: clients, isLoading, isError, error } = useQuery<Client[]>({ 
-    queryKey: ['clients', searchQuery, statusFilter, caseTypeFilter],
-    queryFn: () => fetchClients(searchQuery, statusFilter, caseTypeFilter),
+  const { data: intakes, isLoading, isError, error } = useQuery<Intake[]>({ 
+    queryKey: ['intakes', searchQuery, statusFilter, caseTypeFilter],
+    queryFn: () => fetchIntakes(searchQuery, statusFilter, caseTypeFilter),
   });
 
-  const addClientMutation = useMutation({
-    mutationFn: addClient,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
-    },
-  });
-
-  const updateClientMutation = useMutation({
-    mutationFn: updateClient,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
-    },
-  });
-
-  const deleteClientMutation = useMutation({
-    mutationFn: deleteClient,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
-    },
-  });
-
-  if (isLoading) return <div>Loading clients...</div>;
+  if (isLoading) return <div>Loading intakes...</div>;
   if (isError) return <div>Error: {error?.message}</div>;
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Active':
+      case 'completed':
         return 'bg-success/10 text-success border-success/20';
-      case 'Under Review':
-        return 'bg-warning/10 text-warning border-warning/20';
-      case 'Completed':
-        return 'bg-muted text-muted-foreground border-muted';
-      case 'On Hold':
+      case 'in-progress':
+        return 'bg-primary/10 text-primary border-primary/20';
+      case 'abandoned':
         return 'bg-destructive/10 text-destructive border-destructive/20';
+      case 'started':
+        return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
       default:
         return 'bg-muted text-muted-foreground border-muted';
     }
@@ -180,13 +129,17 @@ export default function Clients() {
     }
   };
 
-  const filteredClients = (clients || []).filter(client => {
-    const matchesSearch = (client.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (client.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (client.caseType || '').toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredIntakes = (intakes || []).filter(intake => {
+    const clientName = `${intake.extractedData?.personalInfo?.firstName || ''} ${intake.extractedData?.personalInfo?.lastName || ''}`;
+    const clientEmail = intake.extractedData?.personalInfo?.email || '';
+    const caseType = intake.extractedData?.caseInfo?.caseType || '';
+
+    const matchesSearch = clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         clientEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         caseType.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesStatus = statusFilter === 'all' || client.status === statusFilter;
-    const matchesCaseType = caseTypeFilter === 'all' || client.caseType === caseTypeFilter;
+    const matchesStatus = statusFilter === 'all' || intake.status === statusFilter;
+    const matchesCaseType = caseTypeFilter === 'all' || caseType === caseTypeFilter;
     
     return matchesSearch && matchesStatus && matchesCaseType;
   });
@@ -200,7 +153,7 @@ export default function Clients() {
             Client Management
           </h1>
           <p className="text-muted-foreground mt-1">
-            Manage your clients and track their legal matters
+            Manage your client intakes and track their legal matters
           </p>
         </div>
         <Button variant="legal" className="legal-fade-in" onClick={handleNewClientIntake}>
@@ -215,8 +168,8 @@ export default function Clients() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Clients</p>
-                <p className="text-3xl font-bold">{clients.length}</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Intakes</p>
+                <p className="text-3xl font-bold">{intakes.length}</p>
               </div>
               <Users className="h-8 w-8 text-primary" />
             </div>
@@ -227,8 +180,8 @@ export default function Clients() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Cases</p>
-                <p className="text-3xl font-bold">{clients.filter(c => c.status === 'Active').length}</p>
+                <p className="text-sm font-medium text-muted-foreground">Completed Intakes</p>
+                <p className="text-3xl font-bold">{intakes.filter(i => i.status === 'completed').length}</p>
               </div>
               <div className="h-8 w-8 rounded bg-success/10 flex items-center justify-center">
                 <div className="h-3 w-3 rounded-full bg-success"></div>
@@ -241,8 +194,8 @@ export default function Clients() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Under Review</p>
-                <p className="text-3xl font-bold">{filteredClients.filter(c => c.status === 'Under Review').length}</p>
+                <p className="text-sm font-medium text-muted-foreground">In Progress Intakes</p>
+                <p className="text-3xl font-bold">{filteredIntakes.filter(i => i.status === 'in-progress' || i.status === 'started').length}</p>
               </div>
               <div className="h-8 w-8 rounded bg-warning/10 flex items-center justify-center">
                 <div className="h-3 w-3 rounded-full bg-warning"></div>
@@ -255,8 +208,8 @@ export default function Clients() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">High Urgency</p>
-                <p className="text-3xl font-bold">{filteredClients.filter(c => c.urgency === 'High').length}</p>
+                <p className="text-sm font-medium text-muted-foreground">High Urgency Intakes</p>
+                <p className="text-3xl font-bold">{filteredIntakes.filter(i => i.extractedData?.caseInfo?.urgency === 'High').length}</p>
               </div>
               <div className="h-8 w-8 rounded bg-destructive/10 flex items-center justify-center">
                 <div className="h-3 w-3 rounded-full bg-destructive"></div>
@@ -271,7 +224,7 @@ export default function Clients() {
         <CardHeader>
           <CardTitle>Client Directory</CardTitle>
           <CardDescription>
-            Search and filter through your client database
+            Search and filter through your client intake database
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -280,7 +233,7 @@ export default function Clients() {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search clients by name, email, or case type..."
+                placeholder="Search intakes by client name, email, or case type..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 legal-input"
@@ -294,10 +247,10 @@ export default function Clients() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="Active">Active</SelectItem>
-                <SelectItem value="Under Review">Under Review</SelectItem>
-                <SelectItem value="Completed">Completed</SelectItem>
-                <SelectItem value="On Hold">On Hold</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="in-progress">In Progress</SelectItem>
+                <SelectItem value="started">Started</SelectItem>
+                <SelectItem value="abandoned">Abandoned</SelectItem>
               </SelectContent>
             </Select>
 
@@ -309,10 +262,11 @@ export default function Clients() {
               <SelectContent>
                 <SelectItem value="all">All Case Types</SelectItem>
                 <SelectItem value="Immigration">Immigration</SelectItem>
-                <SelectItem value="Criminal Defense">Criminal Defense</SelectItem>
-                <SelectItem value="Family Law">Family Law</SelectItem>
-                <SelectItem value="Civil Litigation">Civil Litigation</SelectItem>
-                <SelectItem value="Business Law">Business Law</SelectItem>
+                <SelectItem value="Criminal">Criminal</SelectItem>
+                <SelectItem value="Family">Family</SelectItem>
+                <SelectItem value="Civil">Civil</SelectItem>
+                <SelectItem value="Business">Business</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -326,36 +280,45 @@ export default function Clients() {
                   <TableHead>Case Type</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Urgency</TableHead>
-                  <TableHead>Intake Date</TableHead>
-                  <TableHead>Last Contact</TableHead>
+                  <TableHead>Date</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredClients.map((client) => (
-                  <TableRow key={client.id} className="hover:bg-muted/50">
+                {filteredIntakes.map((intake) => (
+                  <TableRow key={intake._id} className="hover:bg-muted/50">
                     <TableCell>
                       <div>
-                        <div className="font-medium">{client.name}</div>
-                        <div className="text-sm text-muted-foreground">{client.email}</div>
-                        <div className="text-sm text-muted-foreground">{client.phone}</div>
+                        <div className="font-medium">
+                          {intake.extractedData?.personalInfo?.firstName}{' '}
+                          {intake.extractedData?.personalInfo?.lastName}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {intake.extractedData?.personalInfo?.email}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {intake.extractedData?.personalInfo?.phone}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{client.caseType}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(client.status)}>
-                        {client.status}
+                      <Badge variant="outline">
+                        {intake.extractedData?.caseInfo?.caseType}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge className={getUrgencyColor(client.urgency)}>
-                        {client.urgency}
+                      <Badge className={getStatusColor(intake.status)}>
+                        {intake.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>{client.intakeDate}</TableCell>
-                    <TableCell>{client.lastContact}</TableCell>
+                    <TableCell>
+                      <Badge className={getUrgencyColor(intake.extractedData?.caseInfo?.urgency)}>
+                        {intake.extractedData?.caseInfo?.urgency}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(intake.createdAt).toLocaleDateString()}
+                    </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -387,10 +350,10 @@ export default function Clients() {
             </Table>
           </div>
 
-          {filteredClients.length === 0 && (
+          {filteredIntakes.length === 0 && (
             <div className="text-center py-8">
               <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-muted-foreground">No clients found matching your criteria</p>
+              <p className="text-muted-foreground">No intakes found matching your criteria</p>
             </div>
           )}
         </CardContent>
