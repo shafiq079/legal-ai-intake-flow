@@ -189,7 +189,7 @@ const updateIntakeData = asyncHandler(async (req, res) => {
   const { intakeId } = req.params;
   const formData = req.body; // The complete form data from the frontend
 
-  const intake = await Intake.findOne({ sessionId: intakeId });
+  const intake = await Intake.findById(intakeId);
   if (!intake) {
     throw new NotFoundError('Intake session not found.');
   }

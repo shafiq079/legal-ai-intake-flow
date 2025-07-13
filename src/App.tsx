@@ -17,6 +17,7 @@ import Calendar from "./pages/Calendar";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import IntakeDetails from "./pages/IntakeDetails";
+import IntakeEdit from "./pages/IntakeEdit";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
           <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
           <Route path="/intake/:linkId" element={<PublicIntake />} />
           <Route path="/intake-details/:id" element={<ProtectedRoute><Layout><IntakeDetails /></Layout></ProtectedRoute>} />
+          <Route path="/intake-edit/:id" element={<ProtectedRoute><Layout><IntakeEdit /></Layout></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

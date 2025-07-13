@@ -332,9 +332,9 @@ export default function Clients() {
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate(`/intake-edit/${intake._id}`)}>
                             <Edit className="mr-2 h-4 w-4" />
-                            Edit Client
+                            Edit Intake
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem className="text-destructive">
