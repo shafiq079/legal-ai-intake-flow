@@ -49,9 +49,8 @@ const getDashboardStats = asyncHandler(async (req, res) => {
 });
 
 const getRecentIntakes = asyncHandler(async (req, res) => {
-  const recentIntakes = await Intake.find({ status: 'started' })
-    .sort({ createdAt: -1 })
-    .limit(5) // Fetch top 5 recent intakes
+  const recentIntakes = await Intake.find({}) // Fetch all intakes
+    .sort({ createdAt: -1 }) // Sort by creation date, most recent first
     .populate('clientId', 'personalInfo.firstName personalInfo.lastName'); // Populate clientId and select name fields
 
   const formattedIntakes = recentIntakes.map(intake => ({
