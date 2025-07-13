@@ -264,6 +264,15 @@ const getSingleIntakeById = asyncHandler(async (req, res) => {
   res.json(intake);
 });
 
+const deleteIntake = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const intake = await Intake.findByIdAndDelete(id);
+  if (!intake) {
+    throw new NotFoundError('Intake not found');
+  }
+  res.status(204).send();
+});
+
 module.exports = {
   initiateIntake,
   getIntakeById,
@@ -293,5 +302,6 @@ module.exports = {
   markIntakeAsCompleted, // Export the new function
   getAllIntakes, // Export the new function
   getSingleIntakeById, // Export the new function
+  deleteIntake, // Export the new function
 };
 

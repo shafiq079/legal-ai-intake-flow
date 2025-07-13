@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from '@/components/ui/use-toast';
 
 interface Intake {
   _id: string;
@@ -62,6 +63,15 @@ const fetchIntakes = async (searchQuery: string, statusFilter: string, caseTypeF
   return response.json();
 };
 
+const deleteIntake = async (intakeId: string) => {
+  const response = await fetch(`/api/intake/${intakeId}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to delete intake');
+  }
+};
+
 export default function Clients() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -70,33 +80,38 @@ export default function Clients() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const handleNewClientIntake = async () => {
-    try {
-      const response = await fetch('/api/intake/initiate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to initiate new intake');
-      }
-
-      const data = await response.json();
-      const { intakeId } = data;
-      navigate(`/ai-intake/${intakeId}`);
-    } catch (error: any) {
-      console.error('Error initiating new client intake:', error.message);
-      alert(`Error: ${error.message}`);
-    }
-  };
-
-
-  const { data: intakes, isLoading, isError, error } = useQuery<Intake[]>({ 
+  const { data: intakes, isLoading, isError, error } = useQuery<Intake[], Error>({
     queryKey: ['intakes', searchQuery, statusFilter, caseTypeFilter],
     queryFn: () => fetchIntakes(searchQuery, statusFilter, caseTypeFilter),
   });
+
+  const handleNewClientIntake = () => {
+    navigate('/ai-intake');
+  };
+
+  const deleteIntakeMutation = useMutation({
+    mutationFn: async (intakeId: string) => {
+      const response = await fetch(`/api/intake/${intakeId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to delete intake');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['intakes'] });
+      toast.success("Intake deleted successfully!");
+    },
+    onError: (error: any) => {
+      toast.error(`Error deleting intake: ${error.message}`);
+    },
+  });
+
+  const handleDeleteIntake = (intakeId: string) => {
+    if (window.confirm('Are you sure you want to delete this intake?')) {
+      deleteIntakeMutation.mutate(intakeId);
+    }
+  };
 
   if (isLoading) return <div>Loading intakes...</div>;
   if (isError) return <div>Error: {error?.message}</div>;
@@ -337,9 +352,9 @@ export default function Clients() {
                             Edit Intake
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive">
+                          <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteIntake(intake._id)}>
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Delete Client
+                            Delete Intake
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
