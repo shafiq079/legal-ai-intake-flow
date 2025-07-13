@@ -189,13 +189,35 @@ const updateIntakeData = asyncHandler(async (req, res) => {
   const { intakeId } = req.params;
   const formData = req.body; // The complete form data from the frontend
 
-  const intake = await Intake.findById(intakeId);
+  const intake = await Intake.findOne({ sessionId: intakeId });
   if (!intake) {
     throw new NotFoundError('Intake session not found.');
   }
 
   // Assign the entire formData to extractedData
   intake.extractedData = formData;
+
+  // Attempt to parse disabilities if it's a string
+  if (typeof intake.extractedData.medicalInfo?.disabilities === 'string') {
+    let rawString = intake.extractedData.medicalInfo.disabilities;
+
+    // Remove JavaScript string concatenation parts and newlines
+    rawString = rawString.replace(/\n' \+ '/g, '').replace(/\n/g, '');
+
+    // Replace single quotes with double quotes for string values
+    rawString = rawString.replace(/'([^']*)'/g, '"$1"');
+
+    // Add double quotes around unquoted keys
+    rawString = rawString.replace(/([{,][\s]*)(\w+)[\s]*:/g, '$1"$2":');
+
+    try {
+        intake.extractedData.medicalInfo.disabilities = JSON.parse(rawString);
+    } catch (e) {
+        console.error('Failed to parse disabilities string after transformation:', e);
+        // If parsing fails, keep the original string and let Mongoose validation handle it
+        // Or, throw a more specific error
+    }
+  }
 
   await intake.save();
 

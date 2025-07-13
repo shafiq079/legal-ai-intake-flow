@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const disabilitySchema = require('./Disability');
 
 const intakeSchema = new mongoose.Schema({
   // Intake Link Information
@@ -256,11 +257,7 @@ const intakeSchema = new mongoose.Schema({
     },
     medicalInfo: {
       hasDisabilities: Boolean,
-      disabilities: [{
-        type: String,
-        description: String,
-        accommodationsNeeded: String,
-      }],
+      disabilities: [disabilitySchema],
       mentalHealthHistory: {
         hasHistory: Boolean,
         details: String,

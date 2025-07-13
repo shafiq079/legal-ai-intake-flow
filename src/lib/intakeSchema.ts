@@ -208,9 +208,9 @@ export const intakeSchema = z.object({
   medicalInfo: z.object({
     hasDisabilities: z.boolean().optional(),
     disabilities: z.array(z.object({
-      type: z.string().optional(),
-      description: z.string().optional(),
-      accommodationsNeeded: z.string().optional(),
+      type: z.string().min(1, "Disability type is required"),
+      description: z.string().min(1, "Description is required"),
+      accommodationsNeeded: z.string().min(1, "Accommodations needed is required"),
     })).optional(),
     mentalHealthHistory: z.object({
       hasHistory: z.boolean().optional(),
