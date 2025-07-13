@@ -189,7 +189,14 @@ const updateIntakeData = asyncHandler(async (req, res) => {
   const { intakeId } = req.params;
   const formData = req.body; // The complete form data from the frontend
 
-  const intake = await Intake.findOne({ sessionId: intakeId });
+  let intake;
+  if (intakeId.match(/^[0-9a-fA-F]{24}$/)) {
+    // It's a valid MongoDB ObjectId
+    intake = await Intake.findById(intakeId);
+  } else {
+    // Assume it's a sessionId (UUID)
+    intake = await Intake.findOne({ sessionId: intakeId });
+  }
   if (!intake) {
     throw new NotFoundError('Intake session not found.');
   }
