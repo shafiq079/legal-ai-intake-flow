@@ -16,11 +16,10 @@ interface VoiceIntakeProps {
 
 const VoiceIntake: React.FC<VoiceIntakeProps> = ({ intakeId, intakeType, onComplete }) => {
   const [isRecording, setIsRecording] = useState(false);
-  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const [transcribedText, setTranscribedText] = useState('');
-  const [currentMessage, setCurrentMessage] = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const [initialQuestionAsked, setInitialQuestionAsked] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -28,14 +27,20 @@ const VoiceIntake: React.FC<VoiceIntakeProps> = ({ intakeId, intakeType, onCompl
 
   const queryClient = useQueryClient();
 
-  const processAIMutation = useMutation({
-    mutationFn: async ({ message, intakeId }: { message: string; intakeId: string }) => {
-      const response = await axios.post('/api/ai/intake-chat', { message, intakeId });
+  
+
+  const processVoiceIntakeMutation = useMutation({
+    mutationFn: async (transcription: string) => {
+      const response = await axios.post('/api/ai/voice-intake', { message: transcription, intakeId });
       return response.data;
     },
     onSuccess: (data) => {
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.message }]);
-      setCurrentMessage('');
+      setTranscribedText(data.transcribedText); // Assuming backend returns transcribedText
+      setMessages((prev) => [
+        ...prev,
+        { role: 'user', content: data.transcribedText || '' }, // User's transcribed message
+        { role: 'assistant', content: data.message } // AI's response
+      ]);
       if (data.isComplete) {
         onComplete(data.extractedData);
         toast.success('Intake completed! Review the extracted data.');
@@ -44,70 +49,56 @@ const VoiceIntake: React.FC<VoiceIntakeProps> = ({ intakeId, intakeType, onCompl
       }
     },
     onError: (error: any) => {
-      const errorMessage = error.response?.data?.message || 'Failed to process AI intake.';
+      const errorMessage = error.response?.data?.message || 'Failed to process voice intake.';
       toast.error(errorMessage);
     },
   });
 
-  const transcribeAudioMutation = useMutation({
-    mutationFn: async (audioBlob: Blob) => {
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'audio.webm');
-      const response = await axios.post('/api/ai/transcribe-audio', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      return response.data;
-    },
-    onSuccess: (data) => {
-      setTranscribedText(data.transcribedText);
-      setMessages((prev) => [...prev, { role: 'user', content: data.transcribedText }]);
-      processAIMutation.mutate({ message: data.transcribedText, intakeId });
-    },
-    onError: (error: any) => {
-      const errorMessage = error.response?.data?.message || 'Failed to transcribe audio.';
-      toast.error(errorMessage);
-    },
-  });
-
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        setAudioChunks((prev) => [...prev, event.data]);
-      };
-      mediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        transcribeAudioMutation.mutate(audioBlob);
-        setAudioChunks([]);
-      };
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
-      toast.info('Recording started...');
-    } catch (error) {
-      console.error('Error accessing microphone:', error);
-      toast.error('Failed to start recording. Please ensure microphone access is granted.');
+  const startRecording = () => {
+    if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+      toast.error('Speech Recognition is not supported by your browser. Please use a modern browser like Chrome or Edge.');
+      return;
     }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognitionRef.current = new SpeechRecognition();
+    recognitionRef.current.continuous = false; // Only capture a single utterance
+    recognitionRef.current.interimResults = false; // Only return final results
+    recognitionRef.current.lang = 'en-US';
+
+    recognitionRef.current.onstart = () => {
+      setIsRecording(true);
+      toast.info('Listening...');
+    };
+
+    recognitionRef.current.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setTranscribedText(transcript);
+      processVoiceIntakeMutation.mutate(transcript);
+    };
+
+    recognitionRef.current.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      toast.error(`Speech recognition error: ${event.error}`);
+      setIsRecording(false);
+    };
+
+    recognitionRef.current.onend = () => {
+      setIsRecording(false);
+      toast.info('Stopped listening.');
+    };
+
+    recognitionRef.current.start();
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
       setIsRecording(false);
-      toast.info('Recording stopped. Transcribing...');
     }
   };
 
-  const handleSendMessage = () => {
-    if (currentMessage.trim()) {
-      setMessages((prev) => [...prev, { role: 'user', content: currentMessage }]);
-      processAIMutation.mutate({ message: currentMessage, intakeId });
-      setCurrentMessage('');
-    }
-  };
+  
 
   const speakText = (text: string) => {
     if (isMuted) return;
@@ -127,6 +118,28 @@ const VoiceIntake: React.FC<VoiceIntakeProps> = ({ intakeId, intakeType, onCompl
     }
   }, [messages]);
 
+  useEffect(() => {
+    // Send an initial request to get the first question
+    const getInitialQuestion = async () => {
+          console.log('Attempting to get initial question...');
+          try {
+            const response = await axios.post('/api/ai/voice-intake', { intakeId, initial: true });
+            console.log('Initial question response:', response.data);
+            setMessages((prev) => [...prev, { role: 'assistant', content: response.data.message }]);
+            speakText(response.data.message);
+          } catch (error: any) {
+            console.error('Error getting initial question:', error.response?.data || error.message);
+            const errorMessage = error.response?.data?.message || 'Failed to start voice intake.';
+            toast.error(errorMessage);
+          }
+        };
+
+    if (!initialQuestionAsked) {
+      getInitialQuestion();
+      setInitialQuestionAsked(true);
+    }
+  }, [intakeId, initialQuestionAsked]);
+
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
@@ -139,7 +152,7 @@ const VoiceIntake: React.FC<VoiceIntakeProps> = ({ intakeId, intakeType, onCompl
         <ScrollArea className="h-[400px] p-4 border rounded-md bg-muted/50">
           <div className="flex flex-col space-y-2" ref={scrollAreaRef}>
             {messages.length === 0 && (
-              <p className="text-center text-muted-foreground">Start by speaking or typing your first message.</p>
+              <p className="text-center text-muted-foreground">Starting voice intake... Please wait for the first question.</p>
             )}
             {messages.map((msg, index) => (
               <div
@@ -157,7 +170,7 @@ const VoiceIntake: React.FC<VoiceIntakeProps> = ({ intakeId, intakeType, onCompl
                 </div>
               </div>
             ))}
-            {(processAIMutation.isLoading || transcribeAudioMutation.isLoading) && (
+            {(processVoiceIntakeMutation.isLoading) && (
               <div className="flex justify-start">
                 <div className="max-w-[70%] p-3 rounded-lg bg-gray-200 dark:bg-gray-700">
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -172,7 +185,7 @@ const VoiceIntake: React.FC<VoiceIntakeProps> = ({ intakeId, intakeType, onCompl
             onClick={isRecording ? stopRecording : startRecording}
             variant={isRecording ? 'destructive' : 'outline'}
             size="icon"
-            disabled={processAIMutation.isLoading || transcribeAudioMutation.isLoading}
+            disabled={processVoiceIntakeMutation.isLoading || isSpeaking}
           >
             {isRecording ? <StopCircle className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
           </Button>
@@ -182,23 +195,6 @@ const VoiceIntake: React.FC<VoiceIntakeProps> = ({ intakeId, intakeType, onCompl
             size="icon"
           >
             {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-          </Button>
-          <Input
-            placeholder="Type your message..."
-            value={currentMessage}
-            onChange={(e) => setCurrentMessage(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                handleSendMessage();
-              }
-            }}
-            disabled={processAIMutation.isLoading || transcribeAudioMutation.isLoading}
-          />
-          <Button
-            onClick={handleSendMessage}
-            disabled={!currentMessage.trim() || processAIMutation.isLoading || transcribeAudioMutation.isLoading}
-          >
-            <Send className="h-5 w-5" />
           </Button>
         </div>
         {transcribedText && <p className="text-sm text-muted-foreground mt-2">Last transcription: "{transcribedText}"</p>}

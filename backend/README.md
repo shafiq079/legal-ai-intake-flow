@@ -61,8 +61,9 @@ npm run seed
 - **Framework**: Express.js
 - **Database**: MongoDB + Mongoose
 - **Authentication**: JWT
-- **File Upload**: Cloudinary
-- **AI Integration**: OpenAI API
+- **File Upload**: Cloudinary (for documents)
+- **Voice Transcription**: Client-side (Web Speech API)
+- **AI Integration**: Google Gemini API
 - **Validation**: Joi
 - **Security**: Helmet, CORS, bcryptjs
 

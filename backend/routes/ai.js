@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { processAIIntake, transcribeAudio } = require('../controllers/aiController');
+const { processAIIntake, processVoiceIntake } = require('../controllers/aiController');
 const { uploadSingle } = require('../middleware/upload');
 
 router.post('/intake', processAIIntake);
-router.post('/transcribe', uploadSingle('audio'), transcribeAudio);
+router.post('/voice-intake', processVoiceIntake);
 
 module.exports = router;
