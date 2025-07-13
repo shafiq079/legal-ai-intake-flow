@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText } from 'lucide-react';
+import { FileText, Loader2 } from 'lucide-react';
+import axios from 'axios';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { intakeSchema, IntakeFormValues } from '@/lib/intakeSchema';
@@ -35,9 +36,10 @@ interface ManualIntakeFormProps {
   extractedData?: ExtractedField[];
   intakeType: IntakeDocumentType; // Add intakeType prop
   onFormSubmit: (data: IntakeFormValues) => void; // New prop for form submission
+  intakeId: string; // Add intakeId prop
 }
 
-const ManualIntakeForm: React.FC<ManualIntakeFormProps> = ({ onBack, extractedData, intakeType, onFormSubmit }) => {
+const ManualIntakeForm: React.FC<ManualIntakeFormProps> = ({ onBack, extractedData, intakeType, onFormSubmit, intakeId }) => {
   const [uploadedDocuments, setUploadedDocuments] = useState<UploadedFileState[]>([]);
 
   const form = useForm<IntakeFormValues>({
@@ -80,15 +82,56 @@ const ManualIntakeForm: React.FC<ManualIntakeFormProps> = ({ onBack, extractedDa
     console.log("ManualIntakeForm: current intakeType", intakeType);
     form.setValue('documents', uploadedDocuments.map(doc => ({
       name: doc.documentName, // Use the categorized name
-      url: '', // URL will be filled after backend upload
       type: doc.documentType, // Use the categorized type
       category: doc.documentType, // Or a more specific category if available
-      uploadDate: new Date().toISOString(),
     })), { shouldValidate: true });
   }, [uploadedDocuments, form, intakeType]);
 
   const onSubmit = async (data: IntakeFormValues) => {
     console.log('Submitting form data from ManualIntakeForm:', data);
+
+    // Upload documents to Cloudinary first if there are any
+    const uploadedDocumentDetails: { name: string; url: string; type: string; category: string; uploadDate: string; }[] = [];
+
+    if (uploadedDocuments.length > 0) {
+      const formData = new FormData();
+      uploadedDocuments.forEach((docState, index) => {
+        formData.append(`documents`, docState.file); // 'documents' is the field name expected by Multer for multiple files
+        formData.append(`documentNames[${index}]`, docState.documentName);
+        formData.append(`documentTypes[${index}]`, docState.documentType);
+      });
+
+      try {
+        const response = await axios.post(`/api/documents/upload-intake/${intakeId}`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        if (response.data && response.data.documents) {
+          response.data.documents.forEach((uploadedDoc: any) => {
+            uploadedDocumentDetails.push({
+              name: uploadedDoc.name,
+              url: uploadedDoc.url,
+              type: uploadedDoc.type,
+              category: uploadedDoc.category,
+              uploadDate: uploadedDoc.uploadDate,
+            });
+          });
+          toast.success(`All documents uploaded successfully!`);
+        } else {
+          throw new Error('Upload response missing document URLs');
+        }
+      } catch (error) {
+        console.error('Error uploading documents:', error);
+        toast.error(`Failed to upload documents. Please try again.`);
+        return; // Stop submission if document upload fails
+      }
+    }
+
+    // Update the form data with the uploaded document URLs
+    data.documents = uploadedDocumentDetails;
+
     onFormSubmit(data); // Pass the complete form data to the parent component
   };
 

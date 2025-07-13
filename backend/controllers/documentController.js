@@ -12,67 +12,88 @@ cloudinary.config({
 
 const detectDocumentType = (filename) => {
   const name = filename.toLowerCase();
-  if (name.includes('passport')) return 'Passport';
-  if (name.includes('license') || name.includes('id')) return 'ID Document';
-  if (name.includes('bank') || name.includes('statement')) return 'Bank Statement';
-  if (name.includes('contract')) return 'Legal Contract';
-  if (name.includes('birth')) return 'Birth Certificate';
-  return 'Legal Document';
+  if (name.includes('passport')) return 'passport';
+  if (name.includes('license') || name.includes('id')) return 'drivers-license';
+  if (name.includes('bank') || name.includes('statement')) return 'bank-statement';
+  if (name.includes('contract')) return 'contract';
+  if (name.includes('birth')) return 'birth-certificate';
+  if (name.includes('court') || name.includes('legal')) return 'court-document';
+  return 'other';
 };
 
-const generateMockExtractedData = (filename) => {
-  const base = {
-    'Document Type': detectDocumentType(filename),
-    'Processing Date': new Date().toLocaleDateString(),
-  };
-
-  if (filename.toLowerCase().includes('passport')) {
-    return {
-      ...base,
-      'Full Name': 'Sample Name',
-      'Document Number': 'ABC123456',
-      'Nationality': 'Unknown',
-      'Issue Date': '2020-01-01',
-      'Expiry Date': '2030-01-01',
-    };
+const getDocumentCategory = (docType) => {
+  switch (docType) {
+    case 'passport':
+    case 'drivers-license':
+    case 'social-security-card':
+      return 'identity';
+    case 'birth-certificate':
+    case 'marriage-certificate':
+    case 'divorce-decree':
+      return 'legal';
+    case 'tax-return':
+    case 'bank-statement':
+    case 'pay-stub':
+      return 'financial';
+    case 'medical-record':
+      return 'medical';
+    case 'employment-letter':
+      return 'employment';
+    case 'lease-agreement':
+    case 'utility-bill':
+      return 'housing';
+    case 'court-document':
+    case 'contract':
+    case 'legal-brief':
+    case 'affidavit':
+    case 'power-of-attorney':
+    case 'will':
+      return 'legal';
+    default:
+      return 'other';
   }
-
-  return {
-    ...base,
-    'Content': 'Document content extracted successfully',
-    'Key Information': 'Various data points identified',
-  };
 };
 
 const uploadDocument = asyncHandler(async (req, res) => {
-  // In a real application, you would handle file storage here (e.g., Cloudinary, S3)
-  // For now, we'll simulate the upload and processing
-  const { name, size, type } = req.body; // Assuming these come from frontend for simplicity
+  console.log('req.file:', req.file);
+  if (!req.file) {
+    return res.status(400).json({ message: 'No file uploaded or multer failed to process.' });
+  }
 
-  const newDoc = await Document.create({
-    name: name || 'uploaded-document.pdf',
-    size: size || '0 MB',
-    type: type || 'Unknown',
-    uploadDate: new Date(),
-    status: 'processing',
-  });
+  const { documentName, documentType } = req.body; // Get metadata from frontend
+  const userId = req.user._id; // Get user ID from authenticated request
 
-  // Simulate processing completion after a delay
-  setTimeout(async () => {
-    await Document.findByIdAndUpdate(
-      newDoc._id,
-      {
-        status: 'completed',
-        type: detectDocumentType(newDoc.name),
-        extractedData: generateMockExtractedData(newDoc.name),
-        confidence: 0.85 + Math.random() * 0.15,
-        category: 'General',
-      },
-      { new: true }
-    );
-  }, 3000 + Math.random() * 2000);
+  try {
+    const result = await cloudinary.uploader.upload(`data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`, {
+      folder: `legal-intake/documents`,
+      resource_type: "auto",
+    });
+    console.log('Cloudinary upload result:', result);
 
-  res.status(202).json(newDoc); // 202 Accepted for processing
+    const detectedType = detectDocumentType(req.file.originalname || documentName || 'untitled');
+    const detectedCategory = getDocumentCategory(detectedType);
+
+    const docData = {
+      name: documentName || req.file.originalname || 'untitled',
+      url: result.secure_url,
+      type: detectedType,
+      category: detectedCategory,
+      uploadDate: new Date(),
+      status: 'uploaded',
+      uploadedBy: userId,
+      mimeType: req.file.mimetype,
+      fileSize: req.file.size,
+      cloudinaryId: result.public_id,
+    };
+    console.log('Data for Document.create:', docData);
+
+    const newDoc = await Document.create(docData);
+
+    res.status(200).json({ message: 'Document uploaded successfully', url: result.secure_url, document: newDoc });
+  } catch (error) {
+    console.error('Error uploading document to Cloudinary:', error);
+    res.status(500).json({ message: 'Failed to upload document', error: error.message });
+  }
 });
 
 const uploadIntakeDocument = asyncHandler(async (req, res) => {
@@ -89,32 +110,34 @@ const uploadIntakeDocument = asyncHandler(async (req, res) => {
 
   const uploadedDocuments = [];
 
-  for (const file of req.files) {
+  for (let i = 0; i < req.files.length; i++) {
+    const file = req.files[i];
+    const documentName = req.body.documentNames[i];
+    const documentType = req.body.documentTypes[i];
+
     try {
-      // Upload to Cloudinary
-      const result = await cloudinary.uploader.upload(file.path, {
+      // Upload to Cloudinary using buffer
+      const result = await cloudinary.uploader.upload(`data:${file.mimetype};base64,${file.buffer.toString('base64')}`, {
         folder: `legal-intake/${intakeId}`,
         resource_type: "auto",
       });
 
-      const newDocument = await Document.create({
-        name: file.originalname,
-        url: result.secure_url,
-        type: detectDocumentType(file.originalname),
-        category: 'Intake Document',
-        uploadDate: new Date(),
-        intakeId: intake._id, // Link to the intake session
-      });
-      uploadedDocuments.push(newDocument);
+      const detectedType = detectDocumentType(file.originalname || documentName || 'untitled');
+      const detectedCategory = getDocumentCategory(detectedType);
 
       // Add document reference to the intake session
-      intake.documents.push({
-        name: newDocument.name,
-        url: newDocument.url,
-        type: newDocument.type,
-        category: newDocument.category,
-        uploadDate: newDocument.uploadDate,
-      });
+      const intakeDocumentEntry = {
+        name: documentName || file.originalname,
+        url: result.secure_url,
+        type: detectedType,
+        category: detectedCategory,
+        uploadDate: new Date(),
+        mimeType: file.mimetype,
+        fileSize: file.size,
+        cloudinaryId: result.public_id,
+      };
+      intake.documents.push(intakeDocumentEntry);
+      console.log('Intake documents after push:', intake.documents);
 
     } catch (error) {
       console.error('Error uploading document to Cloudinary or saving to DB:', error);
@@ -122,7 +145,9 @@ const uploadIntakeDocument = asyncHandler(async (req, res) => {
     }
   }
 
+  console.log('Attempting to save intake:', intake);
   await intake.save();
+  console.log('Intake saved successfully.');
 
   res.status(200).json({
     message: 'Documents uploaded and linked to intake successfully.',

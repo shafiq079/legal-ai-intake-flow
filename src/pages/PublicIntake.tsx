@@ -411,6 +411,7 @@ export default function PublicIntake() {
               onBack={() => setSelectedIntakeType(null)}
               intakeType={intakeData?.intakeType || 'Other'} // Pass intakeType here
               onFormSubmit={handleManualFormSubmit} // Pass the new handler
+              intakeId={linkId || ''} // Pass intakeId here
             />
           </div>
 
