@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FolderOpen, Plus, Calendar, Clock, User, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -89,6 +90,7 @@ const deleteCase = async (caseId: string) => {
 
 export default function Cases() {
   const [statusFilter, setStatusFilter] = useState('all');
+  const navigate = useNavigate();
   
   const queryClient = useQueryClient();
 
@@ -167,6 +169,10 @@ export default function Cases() {
   };
 
   
+
+  const handleNavigate = (id: string) => {
+    navigate(`/cases/${id}`);
+  };
 
   return (
     <div className="flex-1 space-y-6 p-6">
@@ -273,7 +279,7 @@ export default function Cases() {
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredCases.map((case_) => (
-              <Card key={case_._id} className="legal-hover-lift cursor-pointer">
+              <Card key={case_._id} className="legal-hover-lift cursor-pointer" onClick={() => handleNavigate(case_._id)}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <Badge className={getStatusColor(case_.status)}>
