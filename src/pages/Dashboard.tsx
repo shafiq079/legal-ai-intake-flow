@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Users, FolderOpen, FileText, Clock, TrendingUp, AlertCircle } from 'lucide-react';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
+import { NewCaseModal } from '@/components/cases/NewCaseModal';
 
 interface UpcomingItem {
   id: string;
@@ -55,7 +57,9 @@ import { useAuth } from '@/context/AuthContext';
 
 export default function Dashboard() {
   const [timeRange, setTimeRange] = useState('7d');
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const { data: stats, isLoading: isLoadingStats, error: errorStats } = useQuery({
     queryKey: ['dashboardStats'],
@@ -124,7 +128,8 @@ export default function Dashboard() {
     }
   };
 
-  return (
+  return (<>
+  
     <div className="flex-1 space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -210,7 +215,7 @@ export default function Dashboard() {
                 </div>
               );
             })}
-            <Button variant="outline" className="w-full mt-4">
+            <Button variant="outline" className="w-full mt-4" onClick={() => navigate('/clients')}>
               View All Intakes
             </Button>
           </CardContent>
@@ -247,7 +252,7 @@ export default function Dashboard() {
                 </div>
               </div>
             ))}
-            <Button variant="outline" className="w-full mt-4">
+            <Button variant="outline" className="w-full mt-4" onClick={() => navigate('/calendar')}>
               View Calendar
             </Button>
           </CardContent>
@@ -264,15 +269,15 @@ export default function Dashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Button variant="legal" className="h-20 flex-col gap-2">
+            <Button variant="legal" className="h-20 flex-col gap-2" onClick={() => navigate('/ai-intake')}>
               <FileText className="h-6 w-6" />
               New Client Intake
             </Button>
-            <Button variant="ai" className="h-20 flex-col gap-2">
+            <Button variant="ai" className="h-20 flex-col gap-2" onClick={() => navigate('/ai-documents')}>
               <AlertCircle className="h-6 w-6" />
               AI Document Analysis
             </Button>
-            <Button variant="secondary" className="h-20 flex-col gap-2">
+            <Button variant="secondary" className="h-20 flex-col gap-2" onClick={() => setIsModalOpen(true)}>
               <FolderOpen className="h-6 w-6" />
               Create New Case
             </Button>
@@ -284,5 +289,7 @@ export default function Dashboard() {
         </CardContent>
       </Card>
     </div>
+    <NewCaseModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+  </>
   );
 }
