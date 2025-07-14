@@ -149,8 +149,9 @@ export const NewCaseModal = ({ isOpen, onClose }: NewCaseModalProps) => {
             Fill in the details below to create a new case.
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="max-h-[70vh] overflow-y-auto pr-4">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="flex items-center space-x-2 mb-4">
               <Button
                 type="button"
@@ -339,6 +340,7 @@ export const NewCaseModal = ({ isOpen, onClose }: NewCaseModalProps) => {
             </DialogFooter>
           </form>
         </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );
