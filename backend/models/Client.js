@@ -64,7 +64,6 @@ const clientSchema = new mongoose.Schema({
   caseInfo: {
     caseType: {
       type: String,
-      required: true,
       enum: ['Immigration', 'Criminal', 'Civil', 'Family', 'Business', 'Other']
     },
     subCaseType: String,
@@ -72,7 +71,7 @@ const clientSchema = new mongoose.Schema({
       type: String,
       enum: ['High', 'Medium', 'Low'],
     },
-    description: { type: String, required: true },
+    description: { type: String },
     detailedDescription: String,
     desiredOutcome: String,
     status: String,

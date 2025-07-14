@@ -115,9 +115,7 @@ export const NewCaseModal = ({ isOpen, onClose }: NewCaseModalProps) => {
   const createClientMutation = useMutation({
     mutationFn: createClient,
     onSuccess: (data) => {
-      // After client is created, set the clientId in the form and submit the case
-      form.setValue('clientId', data._id);
-      form.handleSubmit(onSubmit)(); // Re-submit the form with the new clientId
+      // No need to re-submit the form here, it's handled in onSubmit's onSuccess callback
     },
     onError: (error) => {
       console.error('Error creating new client:', error);
@@ -133,6 +131,12 @@ export const NewCaseModal = ({ isOpen, onClose }: NewCaseModalProps) => {
         lastName: values.newClientLastName!,
         email: values.newClientEmail!,
         phone: values.newClientPhone!,
+      }, {
+        onSuccess: (newClientData) => {
+          // After client is created, set the clientId and then create the case
+          const updatedValues = { ...values, clientId: newClientData._id };
+          createCaseMutation.mutate(updatedValues);
+        },
       });
     } else {
       // If selecting an existing client, directly create the case
