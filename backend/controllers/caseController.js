@@ -1,5 +1,6 @@
 const Case = require('../models/Case');
 const { asyncHandler, NotFoundError } = require('../middleware/errorHandler');
+const { createNotification } = require('./notificationController');
 
 // @desc    Get all cases
 // @route   GET /api/cases
@@ -47,6 +48,15 @@ const createCase = asyncHandler(async (req, res) => {
     createdBy: userId,
     caseNumber,
   });
+
+  // Create a notification for the assigned lawyer
+  await createNotification(
+    userId,
+    `New case ${caseRecord.caseNumber} created: ${caseRecord.title}`,
+    'new_case',
+    `/cases/${caseRecord._id}`
+  );
+
   res.status(201).json(caseRecord);
 });
 

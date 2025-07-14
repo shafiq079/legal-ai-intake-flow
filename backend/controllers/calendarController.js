@@ -1,6 +1,7 @@
 const Event = require('../models/Event');
 const Case = require('../models/Case');
 const { asyncHandler, NotFoundError } = require('../middleware/errorHandler');
+const { createNotification } = require('./notificationController');
 
 const getEvents = asyncHandler(async (req, res) => {
   const events = await Event.find();
@@ -27,6 +28,15 @@ const getDeadlines = asyncHandler(async (req, res) => {
 
 const createEvent = asyncHandler(async (req, res) => {
   const newEvent = await Event.create(req.body);
+
+  // Create a notification for the user who created the event
+  await createNotification(
+    req.user._id,
+    `New event created: ${newEvent.title} on ${newEvent.date.toLocaleDateString()}`,
+    'event_reminder',
+    '/calendar'
+  );
+
   res.status(201).json(newEvent);
 });
 

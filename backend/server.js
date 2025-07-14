@@ -19,6 +19,7 @@ const calendarRoutes = require('./routes/calendar');
 const reportsRoutes = require('./routes/reports');
 const settingsRoutes = require('./routes/settings');
 const intakeRoutes = require('./routes/intake');
+const notificationRoutes = require('./routes/notifications');
 
 
 // Import middleware
@@ -81,6 +82,7 @@ app.use('/api/calendar', calendarRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/intake', intakeRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 
 // 404 handler

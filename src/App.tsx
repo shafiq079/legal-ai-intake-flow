@@ -20,6 +20,7 @@ import IntakeDetails from "./pages/IntakeDetails";
 import IntakeEdit from "./pages/IntakeEdit";
 import NotFound from "./pages/NotFound";
 import CaseDetails from "./pages/CaseDetails";
+import { NotificationProvider } from "./context/NotificationContext";
 
 const queryClient = new QueryClient();
 
@@ -33,7 +34,8 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
+        <NotificationProvider>
+          <Routes>
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
           <Route path="/" element={<Navigate to="/dashboard" />} />
@@ -53,6 +55,7 @@ const App = () => (
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </NotificationProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

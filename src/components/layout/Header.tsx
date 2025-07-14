@@ -12,6 +12,7 @@ import {
 
 import { useAuth } from '@/context/AuthContext';
 import { useLogout } from '@/hooks/useLogout';
+import { useNotifications } from '@/context/NotificationContext';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -20,6 +21,7 @@ interface HeaderProps {
 export function Header({ onMenuClick }: HeaderProps) {
   const logoutMutation = useLogout();
   const { user } = useAuth();
+  const { unreadCount, notifications, markAllAsRead } = useNotifications();
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4">
@@ -54,12 +56,55 @@ export function Header({ onMenuClick }: HeaderProps) {
         {/* Right Section */}
         <div className="flex items-center gap-3">
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 h-3 w-3 bg-destructive rounded-full text-[10px] flex items-center justify-center text-white">
-              3
-            </span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="relative">
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-destructive rounded-full text-[10px] flex items-center justify-center text-white">
+                    {unreadCount}
+                  </span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-80" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal flex items-center justify-between">
+                <span>Notifications</span>
+                {unreadCount > 0 && (
+                  <Button variant="link" className="h-auto p-0 text-xs" onClick={markAllAsRead}>
+                    Mark all as read
+                  </Button>
+                )}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {notifications.length === 0 ? (
+                <DropdownMenuItem className="text-muted-foreground">
+                  No new notifications.
+                </DropdownMenuItem>
+              ) : (
+                notifications.map((notification) => (
+                  <DropdownMenuItem
+                    key={notification._id}
+                    className="flex flex-col items-start space-y-1"
+                    onClick={() => {
+                      markAsRead(notification._id);
+                      if (notification.link) {
+                        // Handle navigation if there's a link
+                        // navigate(notification.link);
+                      }
+                    }}
+                  >
+                    <p className={`text-sm ${notification.read ? 'text-muted-foreground' : 'font-medium'}`}>
+                      {notification.message}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(notification.createdAt).toLocaleString()}
+                    </p>
+                  </DropdownMenuItem>
+                ))
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* User Menu */}
           <DropdownMenu>

@@ -52,7 +52,7 @@ const fetchDeadlines = async (): Promise<Deadline[]> => {
 export default function Calendar() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { data: events, isLoading: isLoadingEvents, isError: isErrorEvents, error: errorEvents } = useQuery<Event[]>({ 
-    queryKey: ['calendarEvents'],
+    queryKey: ['events'],
     queryFn: fetchEvents,
   });
 
