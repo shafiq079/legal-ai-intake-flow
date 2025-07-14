@@ -1,15 +1,21 @@
 import { Calendar as CalendarIcon, Plus, Clock } from 'lucide-react';
+import { NewEventModal } from '@/components/calendar/NewEventModal';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 
 interface Event {
-  id: string;
+  _id: string;
   title: string;
-  time: string;
-  type: string;
-  date: string;
+  time?: string;
+  type: 'Meeting' | 'Court' | 'Deadline' | 'Other';
+  date: string; // Changed to string to match ISO format from backend
+  description?: string;
+  allDay?: boolean;
+  location?: string;
 }
 
 interface Deadline {
@@ -20,7 +26,11 @@ interface Deadline {
 }
 
 const fetchEvents = async (): Promise<Event[]> => {
-  const response = await fetch('/api/calendar/events');
+  const response = await fetch('/api/calendar/events', {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch events');
   }
@@ -28,7 +38,11 @@ const fetchEvents = async (): Promise<Event[]> => {
 };
 
 const fetchDeadlines = async (): Promise<Deadline[]> => {
-  const response = await fetch('/api/calendar/deadlines');
+  const response = await fetch('/api/calendar/deadlines', {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch deadlines');
   }
@@ -36,6 +50,7 @@ const fetchDeadlines = async (): Promise<Deadline[]> => {
 };
 
 export default function Calendar() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { data: events, isLoading: isLoadingEvents, isError: isErrorEvents, error: errorEvents } = useQuery<Event[]>({ 
     queryKey: ['calendarEvents'],
     queryFn: fetchEvents,
@@ -72,11 +87,13 @@ export default function Calendar() {
           <h1 className="text-3xl font-bold text-gradient-primary">Calendar</h1>
           <p className="text-muted-foreground mt-1">Manage your schedule and deadlines</p>
         </div>
-        <Button variant="legal">
+        <Button variant="legal" onClick={() => setIsModalOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           New Event
         </Button>
       </div>
+
+      <NewEventModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
@@ -134,6 +151,47 @@ export default function Calendar() {
           </Card>
         </div>
       </div>
+
+      <Card className="legal-card">
+        <CardHeader>
+          <CardTitle>All Events</CardTitle>
+          <CardDescription>A comprehensive list of all scheduled events.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Time</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Location</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {events?.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center">
+                    No events found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                events?.map((event) => (
+                  <TableRow key={event._id}>
+                    <TableCell className="font-medium">{event.title}</TableCell>
+                    <TableCell>{new Date(event.date).toLocaleDateString()}</TableCell>
+                    <TableCell>{event.allDay ? 'All Day' : event.time || 'N/A'}</TableCell>
+                    <TableCell>{event.type}</TableCell>
+                    <TableCell>{event.location || 'N/A'}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <NewEventModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 }
