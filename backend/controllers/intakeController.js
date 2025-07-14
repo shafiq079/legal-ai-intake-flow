@@ -89,17 +89,21 @@ const convertIntakeToClient = async (intakeId) => {
     personalInfo: {
       firstName: intake.extractedData.personalInfo?.firstName,
       lastName: intake.extractedData.personalInfo?.lastName,
-      email: intake.extractedData.personalInfo?.email,
-      phone: intake.extractedData.personalInfo?.phone,
       dateOfBirth: intake.extractedData.personalInfo?.dateOfBirth,
       nationality: intake.extractedData.personalInfo?.nationality,
       maritalStatus: intake.extractedData.personalInfo?.maritalStatus,
       occupation: intake.extractedData.personalInfo?.occupation,
       employer: intake.extractedData.personalInfo?.employer,
     },
+    contactInfo: {
+      email: intake.extractedData.contactInfo?.email,
+      phone: intake.extractedData.contactInfo?.phone,
+    },
     caseInfo: {
-      caseType: intake.extractedData.caseInfo?.caseType,
-      description: intake.extractedData.caseInfo?.description,
+      caseType: intake.extractedData.caseInfo?.caseType
+        ? intake.extractedData.caseInfo.caseType.charAt(0).toUpperCase() + intake.extractedData.caseInfo.caseType.slice(1)
+        : 'Other',
+      description: intake.extractedData.caseInfo?.description || 'No description provided',
       urgency: intake.extractedData.caseInfo?.urgency,
       desiredOutcome: intake.extractedData.caseInfo?.desiredOutcome,
       previousLegalIssues: intake.extractedData.caseInfo?.previousLegalIssues,
@@ -166,10 +170,14 @@ const completeIntake = asyncHandler(async (req, res) => {
 });
 
 const convertIntakeToCase = asyncHandler(async (req, res) => {
-  const { intakeId } = req.params;
+  const { id: intakeId } = req.params;
   const userId = req.user._id; // Assuming req.user is populated by authenticateToken middleware
 
+  console.log(`[convertIntakeToCase] Received intakeId: ${intakeId}`);
+
   const intake = await Intake.findById(intakeId);
+  console.log(`[convertIntakeToCase] Result of findById: ${intake ? 'Found' : 'Not Found'}`);
+
   if (!intake) {
     throw new NotFoundError('Intake not found.');
   }
@@ -203,6 +211,8 @@ const convertIntakeToCase = asyncHandler(async (req, res) => {
     status: 'open',
     priority: intake.extractedData.caseInfo?.priority || 'medium',
     assignedLawyer: userId, // Assigning the current user as the lawyer for now
+    createdBy: userId, // Add the createdBy field
+    caseNumber: `CASE-${Date.now()}` // Add a unique case number
     // You can add more fields here based on your Case model and intake data
   };
 
