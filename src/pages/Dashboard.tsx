@@ -6,8 +6,21 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 
+interface UpcomingItem {
+  id: string;
+  title: string;
+  date: string;
+  type: string;
+  priority: string;
+  clientName?: string; // Optional, as general events might not have a client
+}
+
 const fetchStats = async () => {
-  const response = await fetch('/api/dashboard/stats');
+  const response = await fetch('/api/dashboard/stats', {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  });
   if (!response.ok) {
     throw new Error('Network response was not ok');
   }
@@ -15,15 +28,23 @@ const fetchStats = async () => {
 };
 
 const fetchRecentIntakes = async () => {
-  const response = await fetch('/api/dashboard/recent-intakes');
+  const response = await fetch('/api/dashboard/recent-intakes', {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  });
   if (!response.ok) {
     throw new Error('Network response was not ok');
   }
   return response.json();
 };
 
-const fetchUpcomingDeadlines = async () => {
-  const response = await fetch('/api/dashboard/upcoming-deadlines');
+const fetchUpcomingDeadlines = async (): Promise<UpcomingItem[]> => {
+  const response = await fetch('/api/dashboard/upcoming-deadlines', {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  });
   if (!response.ok) {
     throw new Error('Network response was not ok');
   }
@@ -207,20 +228,21 @@ export default function Dashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {upcomingDeadlines.map((deadline) => (
+            {upcomingDeadlines.map((item) => (
               <div
-                key={deadline.id}
-                className={`p-3 rounded-lg border-l-4 ${getPriorityColor(deadline.priority)}`}
+                key={item.id}
+                className={`p-3 rounded-lg border-l-4 ${getPriorityColor(item.priority)}`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h4 className="font-medium">{deadline.title}</h4>
+                    <h4 className="font-medium">{item.title}</h4>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {deadline.type} • {deadline.date}
+                      {item.type} • {item.date}
+                      {item.clientName && ` • ${item.clientName}`}
                     </p>
                   </div>
                   <Badge variant="outline" className="text-xs">
-                    {deadline.priority}
+                    {item.priority}
                   </Badge>
                 </div>
               </div>

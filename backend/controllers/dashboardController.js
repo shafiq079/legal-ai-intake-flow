@@ -2,6 +2,7 @@ const Client = require('../models/Client');
 const Case = require('../models/Case');
 const Intake = require('../models/Intake');
 const Document = require('../models/Document');
+const Event = require('../models/Event'); // Import Event model
 const { asyncHandler } = require('../middleware/errorHandler');
 
 const getDashboardStats = asyncHandler(async (req, res) => {
@@ -70,21 +71,50 @@ const getRecentIntakes = asyncHandler(async (req, res) => {
 });
 
 const getUpcomingDeadlines = asyncHandler(async (req, res) => {
-  const upcomingDeadlines = await Case.find({
-    dueDate: { $gte: new Date() },
-  })
-    .sort({ dueDate: 1 })
-    .limit(5); // Fetch top 5 upcoming deadlines
+  const now = new Date();
 
-  const formattedDeadlines = upcomingDeadlines.map(case_ => ({
-    id: case_._id,
-    title: `Filing Deadline - ${case_.title}`,
-    date: case_.dueDate.toISOString().split('T')[0],
-    type: 'Court Filing', // Assuming all deadlines are court filings for now
-    priority: case_.priority || 'Medium',
+  // Fetch upcoming case deadlines
+  const caseDeadlines = await Case.find({
+    "deadlines.date": { $gte: now },
+  })
+    .populate('clientId', 'personalInfo.firstName personalInfo.lastName')
+    .select('title deadlines');
+
+  const formattedCaseDeadlines = caseDeadlines.flatMap(case_ =>
+    case_.deadlines
+      .filter(deadline => deadline.date >= now)
+      .map(deadline => ({
+        id: deadline._id,
+        title: `${deadline.title} - ${case_.title}`,
+        date: deadline.date.toISOString().split('T')[0],
+        type: deadline.type || 'Deadline',
+        priority: case_.priority || 'Medium',
+        clientName: case_.clientId ? `${case_.clientId.personalInfo.firstName} ${case_.clientId.personalInfo.lastName}` : 'N/A',
+      }))
+  );
+
+  // Fetch upcoming general events
+  const generalEvents = await Event.find({
+    date: { $gte: now },
+  })
+    .sort({ date: 1 })
+    .limit(10); // Limit to a reasonable number
+
+  const formattedGeneralEvents = generalEvents.map(event => ({
+    id: event._id,
+    title: event.title,
+    date: event.date.toISOString().split('T')[0],
+    type: event.type || 'Event',
+    priority: 'Medium', // Default priority for general events
+    clientName: 'N/A', // General events might not have a client
   }));
 
-  res.json(formattedDeadlines);
+  // Combine and sort all upcoming items
+  const allUpcomingItems = [...formattedCaseDeadlines, ...formattedGeneralEvents].sort((a, b) => {
+    return new Date(a.date).getTime() - new Date(b.date).getTime();
+  });
+
+  res.json(allUpcomingItems.slice(0, 5)); // Return top 5 combined upcoming items
 });
 
 module.exports = {
