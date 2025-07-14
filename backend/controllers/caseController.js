@@ -24,16 +24,28 @@ const getCaseById = asyncHandler(async (req, res) => {
 // @route   POST /api/cases
 // @access  Private
 const createCase = asyncHandler(async (req, res) => {
-  const { clientId, title, description, caseType, status, priority, assignedLawyer } = req.body;
+  const { clientId, title, description, caseType, priority } = req.body;
+  const userId = req.user._id;
+
+  // Generate case number
+  const year = new Date().getFullYear();
+  const count = await Case.countDocuments({
+    createdAt: {
+      $gte: new Date(year, 0, 1),
+      $lt: new Date(year + 1, 0, 1)
+    }
+  });
+  const caseNumber = `CASE-${year}-${String(count + 1).padStart(4, '0')}`;
+
   const caseRecord = await Case.create({
     clientId,
     title,
     description,
     caseType,
-    status,
     priority,
-    assignedLawyer,
-    createdBy: req.user._id,
+    assignedLawyer: userId,
+    createdBy: userId,
+    caseNumber,
   });
   res.status(201).json(caseRecord);
 });

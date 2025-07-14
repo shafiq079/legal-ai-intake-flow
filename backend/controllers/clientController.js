@@ -71,6 +71,15 @@ const submitIntakeForm = asyncHandler(async (req, res) => {
   res.status(201).json(newClient);
 });
 
+const getClientList = asyncHandler(async (req, res) => {
+  const clients = await Client.find({}, 'personalInfo.firstName personalInfo.lastName');
+  const clientList = clients.map(client => ({
+    value: client._id,
+    label: `${client.personalInfo.firstName} ${client.personalInfo.lastName}`,
+  }));
+  res.json(clientList);
+});
+
 module.exports = {
   getAllClients,
   getClientById,
@@ -78,4 +87,5 @@ module.exports = {
   updateClient,
   deleteClient,
   submitIntakeForm,
+  getClientList,
 };

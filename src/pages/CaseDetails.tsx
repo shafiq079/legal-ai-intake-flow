@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { Mail, Phone } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const CaseDetails = () => {
@@ -110,6 +111,14 @@ const CaseDetails = () => {
                 <div>
                   <p className="font-semibold">Client</p>
                   <p>{`${caseDetails.clientId?.personalInfo?.firstName} ${caseDetails.clientId?.personalInfo?.lastName}`}</p>
+                  <div className="flex items-center text-sm text-gray-500 mt-1">
+                    <Mail className="h-4 w-4 mr-1" />
+                    <p>{caseDetails.clientId?.contactInfo?.email}</p>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-500 mt-1">
+                    <Phone className="h-4 w-4 mr-1" />
+                    <p>{caseDetails.clientId?.contactInfo?.phone}</p>
+                  </div>
                 </div>
               </div>
               <Separator />

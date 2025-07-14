@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { NewCaseModal } from '@/components/cases/NewCaseModal';
 
 interface Case {
   _id: string;
@@ -90,6 +91,7 @@ const deleteCase = async (caseId: string) => {
 
 export default function Cases() {
   const [statusFilter, setStatusFilter] = useState('all');
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
   
   const queryClient = useQueryClient();
@@ -186,11 +188,13 @@ export default function Cases() {
             Track and manage all your legal cases efficiently
           </p>
         </div>
-        <Button variant="legal" className="legal-fade-in">
+        <Button variant="legal" className="legal-fade-in" onClick={() => setIsModalOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           New Case
         </Button>
       </div>
+
+      <NewCaseModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
 
       {/* Stats Overview */}
       <div className="grid gap-6 md:grid-cols-4">
