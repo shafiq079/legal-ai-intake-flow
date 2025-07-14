@@ -1,11 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const { getAllCases, getCaseById, createCase, updateCase, deleteCase } = require('../controllers/caseController');
+const {
+  getAllCases,
+  getCaseById,
+  createCase,
+  updateCase,
+  deleteCase,
+} = require('../controllers/caseController');
+const { protect: authenticateToken } = require('../middleware/auth');
 
-router.get('/', getAllCases);
-router.get('/:id', getCaseById);
-router.post('/', createCase);
-router.put('/:id', updateCase);
-router.delete('/:id', deleteCase);
+router.use(authenticateToken);
+
+router.route('/').get(getAllCases).post(createCase);
+router.route('/:id').get(getCaseById).put(updateCase).delete(deleteCase);
 
 module.exports = router;

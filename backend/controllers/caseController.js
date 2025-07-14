@@ -1,45 +1,63 @@
 const Case = require('../models/Case');
 const { asyncHandler, NotFoundError } = require('../middleware/errorHandler');
 
+// @desc    Get all cases
+// @route   GET /api/cases
+// @access  Private
 const getAllCases = asyncHandler(async (req, res) => {
-  const { status } = req.query;
-  const query = {};
-
-  if (status && status !== 'all') {
-    query.status = status;
-  }
-
-  const cases = await Case.find(query);
+  const cases = await Case.find().populate('clientId', 'personalInfo.firstName personalInfo.lastName').populate('assignedLawyer', 'profile.firstName profile.lastName');
   res.json(cases);
 });
 
+// @desc    Get single case
+// @route   GET /api/cases/:id
+// @access  Private
 const getCaseById = asyncHandler(async (req, res) => {
-  const case_ = await Case.findById(req.params.id);
-  if (!case_) {
+  const caseRecord = await Case.findById(req.params.id).populate('clientId').populate('assignedLawyer', 'profile.firstName profile.lastName');
+  if (!caseRecord) {
     throw new NotFoundError('Case not found');
   }
-  res.json(case_);
+  res.json(caseRecord);
 });
 
+// @desc    Create a case
+// @route   POST /api/cases
+// @access  Private
 const createCase = asyncHandler(async (req, res) => {
-  const newCase = await Case.create(req.body);
-  res.status(201).json(newCase);
+  const { clientId, title, description, caseType, status, priority, assignedLawyer } = req.body;
+  const caseRecord = await Case.create({
+    clientId,
+    title,
+    description,
+    caseType,
+    status,
+    priority,
+    assignedLawyer,
+    createdBy: req.user._id,
+  });
+  res.status(201).json(caseRecord);
 });
 
+// @desc    Update a case
+// @route   PUT /api/cases/:id
+// @access  Private
 const updateCase = asyncHandler(async (req, res) => {
-  const case_ = await Case.findByIdAndUpdate(req.params.id, req.body, {
+  const caseRecord = await Case.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
     runValidators: true,
   });
-  if (!case_) {
+  if (!caseRecord) {
     throw new NotFoundError('Case not found');
   }
-  res.json(case_);
+  res.json(caseRecord);
 });
 
+// @desc    Delete a case
+// @route   DELETE /api/cases/:id
+// @access  Private
 const deleteCase = asyncHandler(async (req, res) => {
-  const case_ = await Case.findByIdAndDelete(req.params.id);
-  if (!case_) {
+  const caseRecord = await Case.findByIdAndDelete(req.params.id);
+  if (!caseRecord) {
     throw new NotFoundError('Case not found');
   }
   res.status(204).send();

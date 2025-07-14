@@ -19,6 +19,7 @@ import Settings from "./pages/Settings";
 import IntakeDetails from "./pages/IntakeDetails";
 import IntakeEdit from "./pages/IntakeEdit";
 import NotFound from "./pages/NotFound";
+import CaseDetails from "./pages/CaseDetails";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ const App = () => (
           <Route path="/intake/:linkId" element={<PublicIntake />} />
           <Route path="/intake-details/:id" element={<ProtectedRoute><Layout><IntakeDetails /></Layout></ProtectedRoute>} />
           <Route path="/intake-edit/:id" element={<ProtectedRoute><Layout><IntakeEdit /></Layout></ProtectedRoute>} />
+          <Route path="/cases/:id" element={<ProtectedRoute><Layout><CaseDetails /></Layout></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

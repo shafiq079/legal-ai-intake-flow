@@ -14,15 +14,24 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface Case {
-  id: string;
+  _id: string;
   title: string;
-  client: string;
+  clientId: {
+    personalInfo: {
+      firstName: string;
+      lastName: string;
+    };
+  };
   caseType: string;
-  status: 'Open' | 'In Progress' | 'Under Review' | 'Completed';
-  priority: 'High' | 'Medium' | 'Low';
-  assignedLawyer: string;
-  createdDate: string;
-  dueDate: string;
+  status: 'open' | 'in-progress' | 'under-review' | 'completed' | 'closed' | 'on-hold';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  assignedLawyer: {
+    profile: {
+      firstName: string;
+      lastName: string;
+    };
+  };
+  createdAt: string;
   description: string;
 }
 
@@ -30,7 +39,11 @@ const fetchCases = async (statusFilter: string) => {
   const params = new URLSearchParams();
   if (statusFilter !== 'all') params.append('status', statusFilter);
 
-  const response = await fetch(`/api/cases?${params.toString()}`);
+  const response = await fetch(`/api/cases?${params.toString()}`, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+    },
+  });
   if (!response.ok) {
     throw new Error('Network response was not ok');
   }
@@ -111,21 +124,29 @@ export default function Cases() {
   const filteredCases = cases?.filter(case_ => statusFilter === 'all' || case_.status === statusFilter) || [];
 
   const statusCounts = {
-    open: cases?.filter(c => c.status === 'Open').length || 0,
-    inProgress: cases?.filter(c => c.status === 'In Progress').length || 0,
-    underReview: cases?.filter(c => c.status === 'Under Review').length || 0,
-    completed: cases?.filter(c => c.status === 'Completed').length || 0,
+    open: cases?.filter(c => c.status === 'open').length || 0,
+    inProgress: cases?.filter(c => c.status === 'in-progress').length || 0,
+    underReview: cases?.filter(c => c.status === 'under-review').length || 0,
+    completed: cases?.filter(c => c.status === 'completed').length || 0,
+  };
+
+  const formatStatus = (status: string) => {
+    if (!status) return '';
+    return status
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Open':
+      case 'open':
         return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
-      case 'In Progress':
+      case 'in-progress':
         return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
-      case 'Under Review':
+      case 'under-review':
         return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
-      case 'Completed':
+      case 'completed':
         return 'bg-green-500/10 text-green-600 border-green-500/20';
       default:
         return 'bg-muted text-muted-foreground border-muted';
@@ -241,10 +262,10 @@ export default function Cases() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Cases</SelectItem>
-                <SelectItem value="Open">Open</SelectItem>
-                <SelectItem value="In Progress">In Progress</SelectItem>
-                <SelectItem value="Under Review">Under Review</SelectItem>
-                <SelectItem value="Completed">Completed</SelectItem>
+                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="in-progress">In Progress</SelectItem>
+                <SelectItem value="under-review">Under Review</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -252,11 +273,11 @@ export default function Cases() {
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredCases.map((case_) => (
-              <Card key={case_.id} className="legal-hover-lift cursor-pointer">
+              <Card key={case_._id} className="legal-hover-lift cursor-pointer">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <Badge className={getStatusColor(case_.status)}>
-                      {case_.status}
+                      {formatStatus(case_.status)}
                     </Badge>
                     <Badge className={getPriorityColor(case_.priority)}>
                       {case_.priority}
@@ -270,22 +291,23 @@ export default function Cases() {
                 <CardContent className="space-y-4">
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">{case_.client}</span>
+                    <span className="text-sm font-medium">{`${case_.clientId.personalInfo.firstName} ${case_.clientId.personalInfo.lastName}`}</span>
                   </div>
                   
                   <div className="flex items-center gap-2">
                     <Avatar className="h-6 w-6">
                       <AvatarFallback className="text-xs">
-                        {case_.assignedLawyer.split(' ').map(n => n[0]).join('')}
+                        {case_.assignedLawyer.profile.firstName.charAt(0)}
+                        {case_.assignedLawyer.profile.lastName.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-sm text-muted-foreground">{case_.assignedLawyer}</span>
+                    <span className="text-sm text-muted-foreground">{`${case_.assignedLawyer.profile.firstName} ${case_.assignedLawyer.profile.lastName}`}</span>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">
-                      Due: {case_.dueDate}
+                      Created: {new Date(case_.createdAt).toLocaleDateString()}
                     </span>
                   </div>
 
