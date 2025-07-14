@@ -158,7 +158,8 @@ export default function Cases() {
   };
 
   const getPriorityColor = (priority: string) => {
-    switch (priority) {
+    const formattedPriority = priority.charAt(0).toUpperCase() + priority.slice(1);
+    switch (formattedPriority) {
       case 'High':
         return 'bg-destructive/10 text-destructive border-destructive/20';
       case 'Medium':
