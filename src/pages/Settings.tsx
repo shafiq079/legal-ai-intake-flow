@@ -30,12 +30,16 @@ interface Team {
 }
 
 const fetchUserProfile = async (): Promise<UserProfile> => {
-  const response = await fetch('/api/users/profile');
+  const response = await fetch('/api/users/profile', {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch user profile');
   }
   const data = await response.json();
-  return data.data.user; // Adjust based on your actual API response structure
+  return data; // Adjust based on your actual API response structure
 };
 
 const updateUserProfile = async (profile: UserProfile): Promise<UserProfile> => {
@@ -43,6 +47,7 @@ const updateUserProfile = async (profile: UserProfile): Promise<UserProfile> => 
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
     },
     body: JSON.stringify(profile),
   });
@@ -50,11 +55,15 @@ const updateUserProfile = async (profile: UserProfile): Promise<UserProfile> => 
     throw new Error('Failed to update user profile');
   }
   const data = await response.json();
-  return data.data.user; // Adjust based on your actual API response structure
+  return data; // Adjust based on your actual API response structure
 };
 
 const fetchNotificationSettings = async (): Promise<NotificationSettings> => {
-  const response = await fetch('/api/settings/notifications');
+  const response = await fetch('/api/settings/notifications', {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch notification settings');
   }
@@ -66,6 +75,7 @@ const updateNotificationSettings = async (settings: NotificationSettings): Promi
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
     },
     body: JSON.stringify(settings),
   });
@@ -76,7 +86,11 @@ const updateNotificationSettings = async (settings: NotificationSettings): Promi
 };
 
 const fetchSubscription = async (): Promise<Subscription> => {
-  const response = await fetch('/api/settings/subscription');
+  const response = await fetch('/api/settings/subscription', {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch subscription details');
   }
@@ -84,7 +98,11 @@ const fetchSubscription = async (): Promise<Subscription> => {
 };
 
 const fetchTeam = async (): Promise<Team> => {
-  const response = await fetch('/api/settings/team');
+  const response = await fetch('/api/settings/team', {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch team details');
   }

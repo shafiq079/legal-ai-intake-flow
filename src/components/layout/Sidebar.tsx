@@ -81,14 +81,21 @@ const bottomItems = [
   },
 ];
 
+import { useAuth } from '@/context/AuthContext';
+
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
+  const { user } = useAuth();
 
   const isActiveRoute = (href: string) => {
     if (href === '/dashboard') {
       return location.pathname === '/' || location.pathname === '/dashboard';
     }
     return location.pathname.startsWith(href);
+  };
+
+  const getInitials = (firstName = '', lastName = '') => {
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
   return (
@@ -164,11 +171,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <div className="mt-6 p-3 rounded-lg bg-muted">
               <div className="flex items-center gap-3">
                 <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center">
-                  <span className="text-sm font-semibold">SJ</span>
+                  <span className="text-sm font-semibold">
+                    {user ? getInitials(user.profile.firstName, user.profile.lastName) : ''}
+                  </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">Sarah Johnson</p>
-                  <p className="text-xs text-muted-foreground truncate">Senior Partner</p>
+                  <p className="text-sm font-medium truncate">
+                    {user ? `${user.profile.firstName} ${user.profile.lastName}` : 'Loading...'}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">{user ? user.role : ''}</p>
                 </div>
               </div>
             </div>
